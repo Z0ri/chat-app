@@ -1,0 +1,10 @@
+<div class="message-input-container">
+    <form #messageForm="ngForm" class="message-form" (submit)="sendMessage(messageForm)">
+        <mat-form-field appearance="fill" class="message-input-form">
+        <mat-label>Input</mat-label>
+            <input matInput name="message" class="message-input" ngModel/>
+        </mat-form-field>
+        <button mat-raised-button color="primary" type="submit" class="send-btn"><mat-icon>send</mat-icon></button>
+    </form>
+</div>
+  

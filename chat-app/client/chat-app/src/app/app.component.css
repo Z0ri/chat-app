@@ -1,0 +1,30 @@
+.mat-drawer-container {
+    height: 100%;
+    width: 100%;
+}
+
+.mat-drawer {
+    height: 100%;
+    width: 30%;
+    border-radius: 0;
+    border-right: 2px solid black;
+}
+
+.main-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%; 
+}
+
+app-chat {
+    flex: 1;
+    overflow-y: auto;
+    margin-bottom: 20px;
+}
+
+app-message-input {
+    margin-top: auto; 
+    padding: 10px;
+    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.5);
+    width: 100%;
+}

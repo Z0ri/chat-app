@@ -1,0 +1,4 @@
+# Node
+/node_modules
+# Firebase Admin SDK credentials
+/chat-app-3dfec-firebase-adminsdk-l4amc-663fe2b4e7.json

@@ -1,0 +1,25 @@
+.message-container {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    text-align: start; /* change for received messages */
+    width: auto;
+    min-height: 30px;
+    min-width: 10%;
+    max-width: 40%;
+    border-radius: 20px;
+    border: 2px solid black;
+    margin-top: 50px;
+    margin-left: 20px;
+    word-break: break-word;
+    padding: 10px;
+    white-space: normal;
+}
+
+.content {
+    color: black;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    margin-right: 5px;
+}
