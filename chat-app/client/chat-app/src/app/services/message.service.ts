@@ -49,6 +49,11 @@ export class MessageService{
     }
   }
 
+  //load chat messages
+  public loadMessages(){
+
+  }
+
   public getConnected(): boolean {
     return this.connected;
   }

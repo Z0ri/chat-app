@@ -30,6 +30,9 @@ export class ChatBackgroundComponent {
 
 
   ngOnInit(): void {
+    
+    this.messageService.loadMessages();//load previous messages
+    
     //get new message
     this.messageService.getNewMessage()
     .subscribe({
@@ -40,8 +43,7 @@ export class ChatBackgroundComponent {
       error: (error) => {
         console.log("Error getting the message: " + error);
       }
-    })
-
+    });
   }
 
 }

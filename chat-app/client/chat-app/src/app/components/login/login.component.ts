@@ -49,9 +49,10 @@ export class LoginComponent implements OnInit{
     if(this.loginForm.valid){
       this.authService.login(loginUser).subscribe((success) => {
         if (success) {
-          //make snackbar appear
-          this.messageService.connect();
-          this.router.navigate(['/chat']);
+          /*make snackbar appear*/
+          
+          this.messageService.connect(); //connect to node server
+          this.router.navigate(['/chat']); //navigate to chat
         } else {
           //show an error
           if(!this.invalidForm.error){

@@ -9,6 +9,8 @@ import { MessageComponent } from "../message/message.component";
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { ChatBackgroundComponent } from '../chat-background/chat-background.component';
 import { MessageInputComponent } from '../message-input/message-input.component';
+import { ContactComponent } from "../contact/contact.component";
+import { ContactsSectionComponent } from "../contacts-section/contacts-section.component";
 
 @Component({
   selector: 'app-chat',
@@ -17,14 +19,13 @@ import { MessageInputComponent } from '../message-input/message-input.component'
     MatSidenavModule,
     MatButtonModule,
     MessageInputComponent,
-    ChatBackgroundComponent
+    ChatBackgroundComponent,
+    ContactComponent,
+    ContactsSectionComponent
 ],
   templateUrl: './chat.component.html',
   styleUrl: './chat.component.css'
 })
-export class ChatComponent implements OnInit{
-  ngOnInit(): void {
-    //load all messages
-  }
+export class ChatComponent{
 
 }

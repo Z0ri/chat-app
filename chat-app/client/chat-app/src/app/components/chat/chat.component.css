@@ -19,7 +19,12 @@
 app-chat-background {
     flex: 1;
     overflow-y: auto;
-    margin-bottom: 20px;
+    background-color: rgb(217, 216, 255);
+}
+
+app-contacts-section{
+    flex: 1;
+    overflow-y: auto;
 }
 
 app-message-input {
