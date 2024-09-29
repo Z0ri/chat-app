@@ -22,5 +22,6 @@ export class MessageInputComponent {
 
   sendMessage(form: NgForm){
     this.messageService.sendMessage(form.value.message);
+    form.reset();
   }
 }

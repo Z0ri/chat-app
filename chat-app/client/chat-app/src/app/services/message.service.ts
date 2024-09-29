@@ -1,23 +1,24 @@
-import { Injectable, NgZone, OnDestroy } from '@angular/core';
+import { Injectable, NgZone, OnDestroy, OnInit } from '@angular/core';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { io, Socket } from 'socket.io-client';
 import { HttpClient } from '@angular/common/http';
+import { AuthService } from './auth.service';
 
 @Injectable({
   providedIn: 'root'
 })
-export class MessageService implements OnDestroy {
-  private socket!: Socket;
+export class MessageService{
+  public socket!: Socket;
   private getMessage$: Subject<void> = new Subject<void>();
   private connected: boolean = false;
 
   private messages: string[] = [];
 
-  constructor(private ngZone: NgZone, private http: HttpClient) { }
-
-  ngOnDestroy(): void {
-    this.socket.disconnect();
-  }
+  constructor(
+    private ngZone: NgZone,
+    private http: HttpClient,
+    private authService: AuthService
+  ) { }
 
   public connect() {
     this.ngZone.runOutsideAngular(() => {
@@ -26,11 +27,16 @@ export class MessageService implements OnDestroy {
       this.socket.on("connect", () => {
         console.log("Connected to the server! " + this.socket.id);
         this.connected = true;
+        this.setNewSocketId().subscribe();
       });
 
       this.socket.on("message", (message) => {
         this.messages.push(message);
         this.getMessage$.next(message);
+      });
+
+      this.socket.on("deleteSocket", (socketId: string) => {
+        //delete socket in DB
       });
     });
   }
@@ -55,11 +61,22 @@ export class MessageService implements OnDestroy {
     return this.messages;
   }
 
-  public getSocket() {
-    return this.socket;
+  public getSocketId() {
+    return this.socket.id;
   }
 
-  // New method to disconnect all sockets
+  public setNewSocketId(){
+    return this.http.patch(`${this.authService.getDatabase()}/users/${this.authService.getUserId()}.json`, {socketId: this.getSocketId()});
+  }
+
+  public disconnectSocket(){
+    if(this.socket){
+      this.socket.disconnect();
+    }
+  }
+  
+
+  // Disconnect all sockets (if needed)
   public disconnectAllSockets() {
     return this.http.post('http://localhost:3000/disconnect-all', {}).subscribe({
       next: (response) => {

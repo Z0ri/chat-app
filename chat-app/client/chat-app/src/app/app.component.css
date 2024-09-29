@@ -16,7 +16,7 @@
     height: 100%; 
 }
 
-app-chat {
+app-chat-background {
     flex: 1;
     overflow-y: auto;
     margin-bottom: 20px;

@@ -1,0 +1,19 @@
+<div class="signupForm-container">
+    <form class="signup-form" [formGroup]= "signupForm" (submit)="register()">
+        <h1 class="sign-up">SIGN UP</h1>
+        <mat-form-field>
+            <input matInput (input)="showErrors('username')" type="text" placeholder="Insert your username" formControlName="username">
+        </mat-form-field>
+        <mat-error *ngIf="usernameError">{{usernameError}}</mat-error>
+        <mat-form-field>
+            <input matInput (input)="showErrors('email')" type="text" placeholder="Insert your email" formControlName="email">
+        </mat-form-field>
+        <mat-error *ngIf="emailError">{{emailError}}</mat-error>
+        <mat-form-field>
+            <input matInput (input)="showErrors('password')" type="password" placeholder="Insert your password" formControlName="password">
+        </mat-form-field>
+        <mat-error *ngIf="passwordError">{{passwordError}}</mat-error>
+        <button mat-raised-button color="primary">Register</button>
+        <p class="login-link">Already have an account?<a routerLink="/login">Login</a></p>
+    </form>
+</div>

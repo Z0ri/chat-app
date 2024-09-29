@@ -1,0 +1,21 @@
+.signupForm-container{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+.form-title{
+    text-align: center;
+}
+.signup-form{
+    display: flex;
+    flex-direction: column;
+}
+.login-link{
+    font-size: 16px;
+    margin-top: 5vh;
+}
+mat-error{
+    max-width:200px;
+    word-break: break-word;
+}
