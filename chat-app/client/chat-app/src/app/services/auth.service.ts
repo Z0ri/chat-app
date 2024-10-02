@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { User } from '../models/User';
-import { catchError, map, Observable, of, Subject, switchMap, takeUntil } from 'rxjs';
+import { catchError, map, Observable, of, Subject, switchMap, takeUntil, tap } from 'rxjs';
 import { MessageService } from './message.service';
 
 @Injectable({
@@ -36,21 +36,19 @@ export class AuthService {
         })
       );
   }
-  
-  public signUp(user: User){
-    this.http.post<{[key: string]: User}>(`${this.getDatabase()}/users.json`, user)
-    .subscribe({
-      next: (response) => {
-        this.setUserId(response["name"].toString());
-        this.setIDinDB(response["name"].toString()).subscribe();
-        // this.messageService.getSocket().emit("checkOnline");
-        console.log("User correctly registred!");
-      },
-      error: (error) => {
-        console.error("Error in user registration. " + error);
-      }
-    });
+  public signUp(user: User): Observable<any> {
+    return this.http.post<{[key: string]: User}>(`${this.getDatabase()}/users.json`, user)
+      .pipe(
+        tap((response) => {
+          this.setUserId(response["name"].toString());
+        }),
+        switchMap((response) => this.setIDinDB(response["name"].toString())),
+        tap(() => {
+          console.log("User correctly registered!");
+        })
+      );
   }
+  
 
   public checkLogged(): boolean{
     if(this.checkSessionStorage()){
@@ -79,6 +77,14 @@ export class AuthService {
             .pipe(takeUntil(destroy$));  // Ensure HTTP request is canceled if component is destroyed
         })
       );
+  }
+
+  public checkUserOnline(user: any, callback: (isOnline: boolean) => void): void {
+    this.getUser(user.userId)
+    .subscribe((userData: any) => {
+        const online = userData.socketId !== '';
+        callback(online);
+    });
   }
 
   public getUserId(){

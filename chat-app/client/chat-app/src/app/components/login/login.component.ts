@@ -59,10 +59,10 @@ export class LoginComponent implements OnInit, OnDestroy{
       .pipe(takeUntil(this.destroy$))
       .subscribe((success) => {
         if (success) {
+          console.log(success);
           /*make snackbar appear*/
           this.messageService.connect(); //connect to node server
           this.router.navigate(['/chat']); //navigate to chat
-          this.messageService.getSocket().emit("checkOnline");
         } else {
           //show an error
           if(!this.invalidForm.error){

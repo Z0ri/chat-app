@@ -43,7 +43,7 @@ export class MessageService implements OnDestroy{
 
         this.socket.on("checkStatus",()=>{
           this.checkStatus$.next('');
-          console.log("Ricevuto check status.");
+          console.log("Ricevuto check status da server.");
         });
 
         this.socket.on("message", (message) => {
@@ -79,14 +79,6 @@ export class MessageService implements OnDestroy{
   //load chat messages
   public loadMessages(){
 
-  }
-
-  public checkUserOnline(user: any, callback: (isOnline: boolean) => void): void {
-    this.authService.getUser(user.userId)
-    .subscribe((userData: any) => {
-        const online = userData.socketId !== '';
-        callback(online);
-    });
   }
 
 

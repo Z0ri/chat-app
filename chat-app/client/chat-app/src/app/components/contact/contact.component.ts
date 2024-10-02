@@ -31,7 +31,6 @@ export class ContactComponent implements OnInit{
     .pipe(takeUntil(this.destroy$))
     .subscribe(()=>{
       this.checkStatus();
-      console.log("Checked contact status.");
     });
   }
 
@@ -41,12 +40,11 @@ export class ContactComponent implements OnInit{
 
   //check if owner is online
   private checkStatus() {
-    this.messageService.checkUserOnline(this.ownerData, (isOnline) => {
+    this.authService.checkUserOnline(this.ownerData, (isOnline)=>{
       this.status = isOnline;
       this.statusColor = isOnline ? "lightgreen" : "red"; 
+      this.cd.detectChanges(); 
+      isOnline ? console.log("è ONLINE") : console.log("è OFFLINE");
     });
-
-    this.cd.detectChanges(); 
   }
-  
 }

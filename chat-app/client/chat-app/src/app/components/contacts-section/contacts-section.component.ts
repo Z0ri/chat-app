@@ -32,7 +32,9 @@ export class ContactsSectionComponent implements AfterViewInit, OnDestroy{
       .subscribe(() => {
         this.contactsService.createContactElements(this.contactsContainer); // Load contacts
       });
-    this.messageService.getSocket().emit("checkOnline");
+    if(this.messageService.getSocket()){
+      this.messageService.getSocket().emit("checkOnline");
+    }
   }
   
 }

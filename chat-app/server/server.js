@@ -24,25 +24,25 @@ admin.initializeApp({
 
 // Handle socket connections
 io.on("connection", (socket) => {
-    socket.emit("saveSocket", socket.id);
+    socket.emit("saveSocket", socket.id); //notify client to save his socket in the db
     console.log(`Client with ID: ${socket.id} connected.`);
 
     socket.on("notifyClosing", (id) => {
         userId = id;
+        io.emit("checkStatus"); //notify all clients's contacts to check if they're owners are online
     });
 
     socket.on("checkOnline", ()=>{
-        io.emit("checkStatus");
-        console.log("check status(server)");
+        io.emit("checkStatus"); //notify all clients's contacts to check if they're owners are online
     });
 
     socket.on("disconnect", () => {
         console.log(`Client with ID: ${socket.id} disconnected.`);
-        updateSocket(userId);
+        updateSocket(userId); //remove socket id
     });
 
     socket.on("message", (message) => {
-        io.emit("message", message);
+        io.emit("message", message); 
     });
 });
 

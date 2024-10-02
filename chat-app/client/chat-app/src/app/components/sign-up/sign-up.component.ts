@@ -6,7 +6,7 @@ import { User } from '../../models/User';
 import { AuthService } from '../../services/auth.service';
 import { MessageService } from '../../services/message.service';
 import { RouterModule } from '@angular/router';
-import { CommonModule } from '@angular/common';
+import { CommonModule, getLocaleDayNames } from '@angular/common';
 import { Router } from '@angular/router';
 
 @Component({
@@ -51,7 +51,14 @@ export class SignUpComponent implements OnInit{
     );
 
     if(this.signupForm.valid){
-      this.authService.signUp(user);
+      this.authService.signUp(user).subscribe({
+        next: () => {
+          this.messageService.connect();
+          this.router.navigate(['/chat']);
+          console.log("User signed up successfully!");
+        },
+        error: (error) => console.error("Error during sign up: " + error)
+      });
       this.router.navigate(['/chat']);
       this.signupForm.reset();
     }else{
