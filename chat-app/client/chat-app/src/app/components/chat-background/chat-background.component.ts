@@ -6,7 +6,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MessageComponent } from '../message/message.component';
 import { MessageService } from '../../services/message.service';
-import { Subject, takeUntil } from 'rxjs';
+import { skip, Subject, takeUntil } from 'rxjs';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-chat-background',
@@ -24,9 +25,11 @@ import { Subject, takeUntil } from 'rxjs';
 })
 export class ChatBackgroundComponent implements OnDestroy{
   destroy$: Subject<void> = new Subject();
+  ownerId: string = "";
   messages: string[] = [];
   constructor(
     private messageService: MessageService,
+    private authService: AuthService,
     private cd: ChangeDetectorRef
   ){}
 
@@ -40,15 +43,27 @@ export class ChatBackgroundComponent implements OnDestroy{
     //load previous messages
     this.messageService.getLoadMessagesSubject()
     .subscribe((userId: string)=>{
-      console.log("Loading "+userId+"'s chat...");
+      this.messageService.getMessagesInDB(userId, this.authService.getUserId())
+      .subscribe({
+        next: (messages: string[] = []) => {
+          this.ownerId = userId;
+          if(messages){
+            this.messages = messages;
+          }else{
+            this.messages = [];
+          }
+          this.cd.detectChanges();
+        },
+        error: error => console.error(`Error fetching ${userId}'s messages: ${error}`)
+      });
     });
     
     //get new message
     this.messageService.getNewMessage()
-    .pipe(takeUntil(this.destroy$))
+    .pipe(takeUntil(this.destroy$), skip(1))
     .subscribe({
-      next: () => {
-        this.messages = this.messageService.getMessages();
+      next: (newMessage: string) => {
+        this.messages.push(newMessage);
         this.cd.detectChanges();
       },
       error: (error) => {

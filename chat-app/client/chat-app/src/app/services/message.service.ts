@@ -11,7 +11,7 @@ export class MessageService implements OnDestroy{
   destroy$: Subject<void> = new Subject();
 
   private socket!: Socket;
-  private getMessage$: Subject<void> = new Subject<void>();
+  private getMessage$: BehaviorSubject<string> = new BehaviorSubject<string>("");
   private connected$: BehaviorSubject<string | undefined> = new BehaviorSubject<string | undefined>('');
   public checkStatus$: BehaviorSubject<string> = new BehaviorSubject<string>("");
   private loadChat$: BehaviorSubject<string> = new BehaviorSubject<string>("");
@@ -48,6 +48,7 @@ export class MessageService implements OnDestroy{
         });
 
         this.socket.on("message", (message) => {
+            console.log(typeof(message));
             this.messages.push(message);
             this.getMessage$.next(message);
         });
@@ -68,6 +69,7 @@ export class MessageService implements OnDestroy{
   public sendMessage(message: string, receiverId: string) {
     if (this.connected) {
       this.socket.emit("message", message); // emit message to the server
+      //save new message in the database
       this.saveMessageInDB(message, receiverId).subscribe({
         next: response => console.log("Message successfully added to the database! " + response),
         error: error => console.error("Error adding new message to the database: " + error)

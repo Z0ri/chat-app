@@ -1,4 +1,4 @@
-<div class="contact-container" (click)="loadChat()">
+<div class="contact-container" (click)="loadChat()" [ngStyle]="{'opacity': opacity}">
     <div mat-card-avatar class="profile-pic"></div>
     <div class="status" [ngStyle]="{'background-color': statusColor}"></div>
     <p class="contact-name">{{contactName}}</p>

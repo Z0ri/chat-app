@@ -82,8 +82,10 @@ export class AuthService {
   public checkUserOnline(user: any, callback: (isOnline: boolean) => void): void {
     this.getUser(user.userId)
     .subscribe((userData: any) => {
+      if(userData){
         const online = userData.socketId !== '';
         callback(online);
+      }
     });
   }
 

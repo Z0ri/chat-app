@@ -1,7 +1,7 @@
 import { ComponentRef, Injectable, ViewContainerRef } from '@angular/core';
 import { ContactComponent } from '../components/contact/contact.component';
 import { AuthService } from './auth.service';
-import { Subject, switchMap, takeUntil } from 'rxjs';
+import { BehaviorSubject, Subject, switchMap, takeUntil } from 'rxjs';
 import { MessageService } from './message.service';
 import { HttpClient } from '@angular/common/http';
 
@@ -10,6 +10,8 @@ import { HttpClient } from '@angular/common/http';
 })
 export class ContactsService {
   private destroy$: Subject<void> = new Subject<void>();
+  private darkenContacts$: Subject<void> = new Subject();
+
   constructor(
     private authService: AuthService,
     private http: HttpClient,
@@ -36,5 +38,9 @@ export class ContactsService {
       }
       return contactRefs;
     });
+  }
+
+  getDarkenContactsSubject(){
+    return this.darkenContacts$;
   }
 }
