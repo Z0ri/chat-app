@@ -36,9 +36,12 @@ export class ChatBackgroundComponent implements OnDestroy{
   }
 
 
-  ngOnInit(): void {
-    
-    this.messageService.loadMessages();//load previous messages
+  ngOnInit(): void {  
+    //load previous messages
+    this.messageService.getLoadMessagesSubject()
+    .subscribe((userId: string)=>{
+      console.log("Loading "+userId+"'s chat...");
+    });
     
     //get new message
     this.messageService.getNewMessage()

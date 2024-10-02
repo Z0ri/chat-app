@@ -36,6 +36,7 @@ export class ContactComponent implements OnInit{
 
   loadChat(){
     //load owner's chat
+    this.messageService.loadMessages(this.ownerData.userId);
   }
 
   //check if owner is online
@@ -44,7 +45,6 @@ export class ContactComponent implements OnInit{
       this.status = isOnline;
       this.statusColor = isOnline ? "lightgreen" : "red"; 
       this.cd.detectChanges(); 
-      isOnline ? console.log("è ONLINE") : console.log("è OFFLINE");
     });
   }
 }

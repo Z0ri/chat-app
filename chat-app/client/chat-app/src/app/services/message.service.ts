@@ -1,5 +1,5 @@
 import { Injectable, NgZone, OnDestroy, OnInit } from '@angular/core';
-import { BehaviorSubject, Subject, switchMap, take, takeUntil } from 'rxjs';
+import { BehaviorSubject, Observable, Subject, switchMap, take, takeUntil } from 'rxjs';
 import { io, Socket } from 'socket.io-client';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from './auth.service';
@@ -14,6 +14,8 @@ export class MessageService implements OnDestroy{
   private getMessage$: Subject<void> = new Subject<void>();
   private connected$: BehaviorSubject<string | undefined> = new BehaviorSubject<string | undefined>('');
   public checkStatus$: BehaviorSubject<string> = new BehaviorSubject<string>("");
+  private loadChat$: BehaviorSubject<string> = new BehaviorSubject<string>("");
+  
   private connected: boolean = false;
 
   private messages: string[] = [];
@@ -43,7 +45,6 @@ export class MessageService implements OnDestroy{
 
         this.socket.on("checkStatus",()=>{
           this.checkStatus$.next('');
-          console.log("Ricevuto check status da server.");
         });
 
         this.socket.on("message", (message) => {
@@ -64,23 +65,56 @@ export class MessageService implements OnDestroy{
 }
 
 
-  public sendMessage(message: string) {
+  public sendMessage(message: string, receiverId: string) {
     if (this.connected) {
       this.socket.emit("message", message); // emit message to the server
+      this.saveMessageInDB(message, receiverId).subscribe({
+        next: response => console.log("Message successfully added to the database! " + response),
+        error: error => console.error("Error adding new message to the database: " + error)
+      });
     } else {
       throw new Error("You are not connected.");
     }
   }
 
+  public saveMessageInDB(message: string, receiverId: string): Observable<any> {
+    const currentUserId: string | null = this.authService.getUserId() ? this.authService.getUserId() : null;
+    //check if user id is set
+    if(currentUserId){
+      //get messages stored in the database
+      return this.getMessagesInDB(receiverId, currentUserId)
+      .pipe(
+        switchMap((messages: string[] = []) => {
+          //get database messages
+          let currentMessages = Array.isArray(messages) ? messages : [];
+          //push new message
+          currentMessages.push(message);
+          //patch updated messages array
+          return this.http.patch(`${this.authService.getDatabase()}/users/${receiverId}/messages.json`, {[currentUserId]: currentMessages}).pipe(takeUntil(this.destroy$));
+        })
+      );
+    }else{
+      throw new Error("User ID is not available.");
+    }
+  }
+  
+
+  public getMessagesInDB(userId: string, senderId: string | null){
+    return this.http.get<string[]>(`${this.authService.getDatabase()}/users/${userId}/messages/${senderId}.json`).pipe(takeUntil(this.destroy$));
+  }
+
   public removeSocket(){
-    return this.http.patch(`${this.authService.getDatabase()}/users/${this.authService.getUserId()}.json`, { socketId: 'none' })
+    return this.http.put(`${this.authService.getDatabase()}/users/${this.authService.getUserId()}.json`, { socketId: 'none' })
   }
 
   //load chat messages
-  public loadMessages(){
-
+  public loadMessages(userId: string){
+    this.loadChat$.next(userId);
   }
 
+  public getLoadMessagesSubject(){
+    return this.loadChat$.pipe(takeUntil(this.destroy$));
+  }
 
   public getConnectedSubject(): BehaviorSubject<string | undefined>{
     return this.connected$;
@@ -88,6 +122,10 @@ export class MessageService implements OnDestroy{
 
   public getConnected(): boolean {
     return this.connected;
+  }
+
+  public getCheckStatusSubject(){
+    return this.checkStatus$;
   }
 
   public getNewMessage() {
