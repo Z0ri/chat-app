@@ -1,15 +1,17 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { User } from '../models/User';
-import { catchError, map, Observable, of } from 'rxjs';
+import { catchError, map, Observable, of, Subject, switchMap, takeUntil } from 'rxjs';
+import { MessageService } from './message.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-
+  destroy$: Subject<void> = new Subject<void>();
   constructor(
-    private http: HttpClient,
+    private http: HttpClient
+    // private messageService: MessageService
   ) { }
 
   public login(loginUser: any): Observable<boolean> {
@@ -23,7 +25,6 @@ export class AuthService {
               loginUser.password === user.password
             ) {
               this.setUserId(key);
-              console.log("impostato.");
               return true; 
             }
           }
@@ -41,6 +42,8 @@ export class AuthService {
     .subscribe({
       next: (response) => {
         this.setUserId(response["name"].toString());
+        this.setIDinDB(response["name"].toString()).subscribe();
+        // this.messageService.getSocket().emit("checkOnline");
         console.log("User correctly registred!");
       },
       error: (error) => {
@@ -68,8 +71,14 @@ export class AuthService {
     }
   }
 
-  public removeSocket(){
-    return this.http.patch(`${this.getDatabase()}/users/${this.getUserId()}.json`, {socket: ""});
+  public deleteSocketId(destroy$: Subject<void>) {
+    return this.getUsers()
+      .pipe(
+        switchMap((users: any) => {
+          return this.http.patch(`${this.getDatabase()}/users/${this.getUserId()}.json`, { socketId: '' })
+            .pipe(takeUntil(destroy$));  // Ensure HTTP request is canceled if component is destroyed
+        })
+      );
   }
 
   public getUserId(){
@@ -85,6 +94,19 @@ export class AuthService {
     }
   }
 
+  public setIDinDB(userId: string): Observable<any> {
+    return this.http.patch(`${this.getDatabase()}/users/${this.getUserId()}.json`, { userId: userId });
+  }
+
+  
+  public getUsers(): Observable<any>{
+    return this.http.get(`${this.getDatabase()}/users.json`).pipe(takeUntil(this.destroy$));
+  }
+
+  public getUser(userId: string){
+    return this.http.get(`${this.getDatabase()}/users/${userId}.json`).pipe(takeUntil(this.destroy$));
+  }
+  
   public showError(invalid: { error: boolean }) {
     invalid.error = true;
     setTimeout(() => {

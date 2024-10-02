@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -7,6 +7,7 @@ import { AuthService } from '../../services/auth.service';
 import { Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { MessageService } from '../../services/message.service';
+import { Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-login',
@@ -22,7 +23,9 @@ import { MessageService } from '../../services/message.service';
   templateUrl: './login.component.html',
   styleUrl: './login.component.css'
 })
-export class LoginComponent implements OnInit{
+export class LoginComponent implements OnInit, OnDestroy{
+  destroy$: Subject<void> = new Subject();
+
   loginForm!: FormGroup;
   invalidForm: any = {error: false};
   invalidCredentials: any = {error: false};
@@ -33,6 +36,11 @@ export class LoginComponent implements OnInit{
     private router: Router,
     private cd: ChangeDetectorRef
   ){}
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 
   ngOnInit(): void {
     this.loginForm = new FormGroup({
@@ -47,12 +55,14 @@ export class LoginComponent implements OnInit{
       password: this.loginForm.get('password')?.value
     }
     if(this.loginForm.valid){
-      this.authService.login(loginUser).subscribe((success) => {
+      this.authService.login(loginUser)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((success) => {
         if (success) {
           /*make snackbar appear*/
-          
           this.messageService.connect(); //connect to node server
           this.router.navigate(['/chat']); //navigate to chat
+          this.messageService.getSocket().emit("checkOnline");
         } else {
           //show an error
           if(!this.invalidForm.error){

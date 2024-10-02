@@ -22,20 +22,24 @@ export class AppComponent implements OnInit, OnDestroy{
 
   constructor(
     private messageService: MessageService,
-    private authService: AuthService,
-    private router: Router
+    private authService: AuthService
   ){}
 
   ngOnDestroy(): void {
     this.messageService.disconnectSocket();
+    this.messageService.closeSocket();
   }
 
   ngOnInit(): void {
+    //if logged, connect to  node server
     if(this.authService.checkLogged()){
       this.messageService.connect();
     }
-    //redirect to login page if user is not logged
-    this.authService.checkLogged() ? this.router.navigate(['/chat']) : this.router.navigate(['/login']);
+    // if(typeof sessionStorage !== 'undefined'){
+    //   sessionStorage.removeItem("userId");
+    // }
+    //redirect to login page if user is not logged /*TO MODIFY WITH LOG OUT*/
+    // this.authService.checkLogged() ? this.router.navigate(['/chat']) : this.router.navigate(['/login']);
   }
 
 }

@@ -2,13 +2,12 @@ import { Component, OnInit } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
-import { HttpClient } from '@angular/common/http';
 import { User } from '../../models/User';
 import { AuthService } from '../../services/auth.service';
 import { MessageService } from '../../services/message.service';
 import { RouterModule } from '@angular/router';
-import { Console, error } from 'console';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-sign-up',
@@ -30,7 +29,8 @@ export class SignUpComponent implements OnInit{
   passwordError: string = "";
   constructor(
     private authService: AuthService,
-    private messageService: MessageService
+    private messageService: MessageService,
+    private router: Router
   ){}
 
   ngOnInit(): void {
@@ -43,7 +43,8 @@ export class SignUpComponent implements OnInit{
 
   register(){
     const user = new User(
-      this.messageService.getSocketId(),
+      '',
+      '',
       this.signupForm.get('username')?.value,
       this.signupForm.get('email')?.value,
       this.signupForm.get('password')?.value
@@ -51,7 +52,7 @@ export class SignUpComponent implements OnInit{
 
     if(this.signupForm.valid){
       this.authService.signUp(user);
-      this.messageService.connect();
+      this.router.navigate(['/chat']);
       this.signupForm.reset();
     }else{
       this.showErrors('username');
