@@ -5,6 +5,7 @@ import { MatButtonModule } from '@angular/material/button';
 import {MatIconModule} from '@angular/material/icon';
 import { MessageService } from '../../services/message.service';
 import { error } from 'console';
+import { ContactsService } from '../../services/contacts.service';
 
 @Component({
   selector: 'app-message-input',
@@ -29,11 +30,12 @@ export class MessageInputComponent implements OnInit{
         this.receiverId = userId;
       },
       error: (error) => console.error("Error getting the receiver id.")
-    });  
+    });
   }
 
   sendMessage(form: NgForm){
     this.messageService.sendMessage(form.value.message,this.receiverId);
+    this.messageService.getClientMessageSubject().next(form.value.message);
     form.reset();
   }
 }

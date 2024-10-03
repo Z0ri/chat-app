@@ -24,7 +24,7 @@ admin.initializeApp({
 
 // Handle socket connections
 io.on("connection", (socket) => {
-    socket.emit("saveSocket", socket.id); //notify client to save his socket in the db
+    socket.join(socket.id);
     console.log(`Client with ID: ${socket.id} connected.`);
 
     socket.on("notifyClosing", (id) => {
@@ -38,12 +38,14 @@ io.on("connection", (socket) => {
 
     socket.on("disconnect", () => {
         console.log(`Client with ID: ${socket.id} disconnected.`);
-        updateSocket(userId); //remove socket id
+        removeSocket(userId); //remove socket id
     });
 
-    socket.on("message", (message) => {
-        io.emit("message", message); 
-    });
+    //listen for client's messages
+    socket.on("message", ({ message, receiverSocketId }) => {
+        console.log("Message received (server)");
+        io.to(receiverSocketId).emit("message", message);
+    });    
 });
 
 // Start the server
@@ -52,7 +54,7 @@ httpServer.listen(3000, () => {
 });
 
 // Update socket ID in Firebase
-async function updateSocket(userId) {
+async function removeSocket(userId) {
     const db = admin.database();
     const ref = db.ref(`users/${userId}/socketId`); 
 

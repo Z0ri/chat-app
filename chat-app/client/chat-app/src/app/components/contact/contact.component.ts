@@ -31,6 +31,11 @@ export class ContactComponent implements OnInit{
 
   ngOnInit(): void {
     this.contactName = this.ownerData.username;
+    if(this.authService.getUserId() == this.ownerData.userId){
+      this.contactName += " (Yourself)";
+    }
+
+
     this.messageService.checkStatus$
     .pipe(takeUntil(this.destroy$))
     .subscribe(()=>{

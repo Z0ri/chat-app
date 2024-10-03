@@ -1,5 +1,7 @@
-<p *ngIf="messages.length<=0">You still don't have any messages with {{ownerId}}, send a message!</p>
-<div class="messages" *ngFor="let message of messages">
-    <app-message [content]="message"></app-message>
+<p *ngIf="(sentMessages?.length || 0) <= 0 && (receivedMessages?.length || 0) <= 0">You still don't have any messages with {{ownerId}}, send a message!</p>
+<div class="received-messages" *ngFor="let message of receivedMessages">
+    <app-message [content]="message" style="background-color: red;"></app-message>
 </div>
-  
+<div class="sent-messages" *ngFor="let message of sentMessages">
+    <app-message [content]="message" style="background-color: green;"></app-message>
+</div>

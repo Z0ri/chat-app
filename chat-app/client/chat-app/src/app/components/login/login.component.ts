@@ -62,6 +62,7 @@ export class LoginComponent implements OnInit, OnDestroy{
           console.log(success);
           /*make snackbar appear*/
           this.messageService.connect(); //connect to node server
+          this.messageService.getSocket().emit("checkOnline");
           this.router.navigate(['/chat']); //navigate to chat
         } else {
           //show an error

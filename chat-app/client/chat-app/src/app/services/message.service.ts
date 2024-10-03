@@ -1,5 +1,5 @@
-import { Injectable, NgZone, OnDestroy, OnInit } from '@angular/core';
-import { BehaviorSubject, Observable, Subject, switchMap, take, takeUntil } from 'rxjs';
+import { Injectable, NgZone, OnDestroy } from '@angular/core';
+import { BehaviorSubject, Observable, of, Subject, switchMap, takeUntil } from 'rxjs';
 import { io, Socket } from 'socket.io-client';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from './auth.service';
@@ -12,6 +12,7 @@ export class MessageService implements OnDestroy{
 
   private socket!: Socket;
   private getMessage$: BehaviorSubject<string> = new BehaviorSubject<string>("");
+  private createClientMessage$: BehaviorSubject<string> = new BehaviorSubject<string>("");
   private connected$: BehaviorSubject<string | undefined> = new BehaviorSubject<string | undefined>('');
   public checkStatus$: BehaviorSubject<string> = new BehaviorSubject<string>("");
   private loadChat$: BehaviorSubject<string> = new BehaviorSubject<string>("");
@@ -38,8 +39,13 @@ export class MessageService implements OnDestroy{
         this.socket.on("connect", () => {
             console.log("Connected to the server! " + this.socket.id);
             this.connected = true;
-            this.setNewSocketId().pipe(takeUntil(this.destroy$)).subscribe(() => {
+            this.setNewSocketId().pipe(takeUntil(this.destroy$))
+            .subscribe({
+              next: (response) =>{
+                console.log("New socket id successfully set: " + response);
                 this.connected$.next(this.socket.id);
+              },
+              error: error => console.error("Error setting new socket id: " + error)
             });
         });
 
@@ -47,10 +53,10 @@ export class MessageService implements OnDestroy{
           this.checkStatus$.next('');
         });
 
-        this.socket.on("message", (message) => {
-            console.log(typeof(message));
-            this.messages.push(message);
-            this.getMessage$.next(message);
+        this.socket.on("message", (messageData) => {
+            console.log("I RECEIVED THE MESSAGE FROM THE SERVER: "+messageData.content);
+            this.messages.push(messageData);
+            this.getMessage$.next(messageData.content);
         });
 
         this.socket.on("disconnect", () => {
@@ -66,18 +72,47 @@ export class MessageService implements OnDestroy{
 }
 
 
-  public sendMessage(message: string, receiverId: string) {
-    if (this.connected) {
-      this.socket.emit("message", message); // emit message to the server
-      //save new message in the database
-      this.saveMessageInDB(message, receiverId).subscribe({
-        next: response => console.log("Message successfully added to the database! " + response),
-        error: error => console.error("Error adding new message to the database: " + error)
+public sendMessage(message: string, receiverId: string) {
+  console.log("receiverId: " + receiverId);
+  
+  if (this.connected) {
+    this.getUserSocketId(receiverId)
+      .pipe(
+        switchMap((receiverSocketId: string) => {
+          // Verifica se il socket ID ricevuto è vuoto
+          if (!receiverSocketId) {
+            throw new Error(`Nessun Socket ID trovato per ${receiverId}`);
+          }
+          
+          
+          return this.saveMessageInDB(message, receiverId).pipe(
+            switchMap(response => {
+              console.log("receiverSocketId: " + receiverSocketId);
+              
+              let data = {
+                senderId: this.authService.getUserId(),
+                receiverId: receiverId,
+                receiverSocketId: receiverSocketId,
+                content: message
+              }
+              
+              this.socket.emit("message", data);
+              return of(response); 
+            })
+          );
+        }),
+        takeUntil(this.destroy$) 
+      )
+      .subscribe({
+        next: response => console.log("Messaggio aggiunto al database con successo!", response),
+        error: error => console.error("Errore nell'aggiunta del messaggio al database:", error)
       });
-    } else {
-      throw new Error("You are not connected.");
-    }
+  } else {
+    throw new Error("Non sei connesso.");
   }
+}
+
+
 
   public saveMessageInDB(message: string, receiverId: string): Observable<any> {
     const currentUserId: string | null = this.authService.getUserId() ? this.authService.getUserId() : null;
@@ -101,8 +136,8 @@ export class MessageService implements OnDestroy{
   }
   
 
-  public getMessagesInDB(userId: string, senderId: string | null){
-    return this.http.get<string[]>(`${this.authService.getDatabase()}/users/${userId}/messages/${senderId}.json`).pipe(takeUntil(this.destroy$));
+  public getMessagesInDB(receiverId: string | null, senderId: string | null){
+    return this.http.get<string[]>(`${this.authService.getDatabase()}/users/${receiverId}/messages/${senderId}.json`).pipe(takeUntil(this.destroy$));
   }
 
   public removeSocket(){
@@ -118,19 +153,20 @@ export class MessageService implements OnDestroy{
     return this.loadChat$.pipe(takeUntil(this.destroy$));
   }
 
+  
   public getConnectedSubject(): BehaviorSubject<string | undefined>{
     return this.connected$;
-  }
-
-  public getConnected(): boolean {
-    return this.connected;
   }
 
   public getCheckStatusSubject(){
     return this.checkStatus$;
   }
 
-  public getNewMessage() {
+  public getClientMessageSubject(){
+    return this.createClientMessage$;
+  }
+
+  public getNewMessageSubject() {
     return this.getMessage$;
   }
 
@@ -138,9 +174,10 @@ export class MessageService implements OnDestroy{
     return this.messages;
   }
 
-  public getUserSocketId(userId: string){
-    //get user's socket id
-    return this.http.get(`${this.authService.getDatabase()}/users/${userId}/socketId.json`).pipe(takeUntil(this.destroy$));
+  public getUserSocketId(userId: string): Observable<string> {
+    // Get user's socket ID
+    return this.http.get<string>(`${this.authService.getDatabase()}/users/${userId}/socketId.json`)
+      .pipe(takeUntil(this.destroy$));
   }
 
   public getSocket(){
