@@ -4,8 +4,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import {MatIconModule} from '@angular/material/icon';
 import { MessageService } from '../../services/message.service';
-import { error } from 'console';
-import { ContactsService } from '../../services/contacts.service';
+import { Message } from '../../models/Message';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-message-input',
@@ -20,22 +20,28 @@ import { ContactsService } from '../../services/contacts.service';
   styleUrl: './message-input.component.css'
 })
 export class MessageInputComponent implements OnInit{
+  senderId: string | null = '';
   receiverId: string = '';
-  constructor(private messageService: MessageService){}
+  constructor(
+    private messageService: MessageService,
+    private authService: AuthService
+  ){}
   
   ngOnInit(): void {
-    this.messageService.getLoadMessagesSubject()
+    this.senderId = this.authService.getUserId();
+    this.messageService.getLoadChatSubject()
     .subscribe({
       next: (userId: string) => {
         this.receiverId = userId;
       },
-      error: (error) => console.error("Error getting the receiver id.")
+      error: (error) => console.error("Error getting the receiver id. " + error)
     });
   }
 
   sendMessage(form: NgForm){
-    this.messageService.sendMessage(form.value.message,this.receiverId);
-    this.messageService.getClientMessageSubject().next(form.value.message);
+    console.log(form.value.message);
+    const message = new Message(this.senderId, form.value.message, new Date())
+    this.messageService.sendMessage(message, this.receiverId);
     form.reset();
   }
 }

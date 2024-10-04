@@ -8,6 +8,7 @@ import { MessageComponent } from '../message/message.component';
 import { MessageService } from '../../services/message.service';
 import { skip, Subject, takeUntil } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
+import { Message } from '../../models/Message';
 
 @Component({
   selector: 'app-chat-background',
@@ -25,9 +26,12 @@ import { AuthService } from '../../services/auth.service';
 })
 export class ChatBackgroundComponent implements OnDestroy, OnInit {
   private destroy$: Subject<void> = new Subject();
+  currentUserId: string | null = "";
   ownerId: string = "";
   sentMessages: string[] = [];
   receivedMessages: string[] = [];
+  messages: Message[] = [];
+  currentDate!: Date;
 
   constructor(
     private messageService: MessageService,
@@ -41,56 +45,36 @@ export class ChatBackgroundComponent implements OnDestroy, OnInit {
   }
 
   ngOnInit(): void {
-    console.log('ngOnInit called'); // Debug: Verifica se ngOnInit viene chiamato
-    this.messageService.getLoadMessagesSubject()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((chatOwnerId: string) => {
-        console.log(`Chat Owner ID: ${chatOwnerId}`); // Debug: Verifica il valore ricevuto
-        this.ownerId = chatOwnerId; // Imposta l'ID del proprietario della chat
-        this.loadReceivedMessages(chatOwnerId);
-        this.loadSentMessages(chatOwnerId);
-      });
-    
-    this.messageService.getNewMessageSubject()
+    this.currentUserId = this.authService.getUserId();
+    this.currentDate = new Date();
+    this.messageService.getLoadChatSubject()
       .pipe(takeUntil(this.destroy$), skip(1))
-      .subscribe((message: string)=>{
-        this.receivedMessages.push(message);
+      .subscribe((chatOwnerId: string) => {
+        this.ownerId = chatOwnerId;
+        this.loadMessages(this.currentUserId, chatOwnerId);
+      });
+  }
+
+
+  loadMessages(currentUserId: string | null, chatOwnerId: string){
+    //get messages from the chat
+    this.messageService.getChatMessagesInDB(currentUserId, chatOwnerId)
+    .subscribe({
+      next: (messages: Message[]) => {
+        this.messages = messages;
+        messages.forEach(message => {
+          console.log("contenuto messaggio: "+message.content);
+          console.log("autore messaggio: "+message.authorId);
+          console.log("owner id: "+this.ownerId);
+        });
+        //analize if each message was sent or received
         this.cd.detectChanges();
-      });
-
-    this.messageService.getClientMessageSubject()
-    .subscribe((message: string)=>{
-      this.sentMessages.push(message);
-      this.cd.detectChanges();
+      },
+      error: error => console.log("Error loading chat messages: " + error)
     })
-  }
-
-  loadReceivedMessages(chatOwnerId: string) {
-    const userId = this.authService.getUserId();
-    this.messageService.getMessagesInDB(userId, chatOwnerId)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (messages: string[] = []) => {
-          console.log('Received Messages:', messages); // Debug: Log dei messaggi ricevuti
-          this.receivedMessages = Array.isArray(messages) ? messages : []; // Assicurati che sia un array
-          this.cd.detectChanges(); // Trigger change detection
-        },
-        error: error => console.error("Error getting received messages: ", error)
-      });
-  }
-
-  loadSentMessages(chatOwnerId: string) {
-    const userId = this.authService.getUserId();
-    this.messageService.getMessagesInDB(chatOwnerId, userId)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (messages: string[] = []) => {
-          console.log('Sent Messages:', messages); // Debug: Log dei messaggi inviati
-          this.sentMessages = Array.isArray(messages) ? messages : []; // Assicurati che sia un array
-          this.cd.detectChanges(); // Trigger change detection
-        },
-        error: error => console.error("Error getting sent messages: ", error)
-      });
+    //iterate throught every message of the chat
+    //push each message in the messages array
+    //update view
   }
 
 }

@@ -54,7 +54,7 @@ export class ContactComponent implements OnInit{
 
   loadChat(){
     //load owner's chat
-    this.messageService.loadMessages(this.ownerData.userId);
+    this.messageService.getLoadChatSubject().next(this.ownerData.userId);
     //send a subject to make other contacts less visible
     this.contactService.getDarkenContactsSubject().next(this.ownerData.userId);
   }

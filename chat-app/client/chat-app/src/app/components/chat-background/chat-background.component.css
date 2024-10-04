@@ -1,3 +1,11 @@
-.sent-messages{
-    float: right;
+.message-container {
+  padding-bottom: 15%;
+}
+.sent-message{
+  float: right;
+  background-color: green;
+}
+.received-message{
+  float: left;
+  background-color: red;
 }

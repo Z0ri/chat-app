@@ -1,7 +1,8 @@
-<p *ngIf="(sentMessages?.length || 0) <= 0 && (receivedMessages?.length || 0) <= 0">You still don't have any messages with {{ownerId}}, send a message!</p>
-<div class="received-messages" *ngFor="let message of receivedMessages">
-    <app-message [content]="message" style="background-color: red;"></app-message>
-</div>
-<div class="sent-messages" *ngFor="let message of sentMessages">
-    <app-message [content]="message" style="background-color: green;"></app-message>
+<p *ngIf="messages.length>0">You still don't have any messages with {{ownerId}}, send a message!</p>
+
+<div class="message-container" *ngFor="let message of messages">
+  <app-message 
+    [content]="message.content" 
+    [class]="currentUserId === message.authorId ? 'sent-message' : 'received-message'">
+  </app-message>
 </div>

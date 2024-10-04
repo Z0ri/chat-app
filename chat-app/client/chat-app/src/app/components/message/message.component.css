@@ -1,19 +1,14 @@
-.message-container {
-    display: inline-flex;
-    align-items: center;
-    justify-content: flex-start;
-    text-align: start; /* change for received messages */
-    width: auto;
-    min-height: 30px;
-    min-width: 10%;
-    max-width: 40%;
+.message-container{
+    padding: 20px;
     border-radius: 20px;
-    border: 2px solid black;
-    margin-top: 50px;
-    margin-left: 20px;
-    word-break: break-word;
-    padding: 10px;
-    white-space: normal;
+}
+.sent-message {
+    float: right;
+    background-color: lightblue;
+}
+.received-message {
+    float: left;
+    background-color: lightgrey;
 }
 
 .content {

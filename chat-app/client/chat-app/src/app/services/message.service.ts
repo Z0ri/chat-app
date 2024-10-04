@@ -1,8 +1,9 @@
 import { Injectable, NgZone, OnDestroy } from '@angular/core';
-import { BehaviorSubject, Observable, of, Subject, switchMap, takeUntil } from 'rxjs';
+import { BehaviorSubject, catchError, Observable, of, Subject, switchMap, takeUntil } from 'rxjs';
 import { io, Socket } from 'socket.io-client';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from './auth.service';
+import { Message } from '../models/Message';
 
 @Injectable({
   providedIn: 'root'
@@ -11,15 +12,14 @@ export class MessageService implements OnDestroy{
   destroy$: Subject<void> = new Subject();
 
   private socket!: Socket;
-  private getMessage$: BehaviorSubject<string> = new BehaviorSubject<string>("");
-  private createClientMessage$: BehaviorSubject<string> = new BehaviorSubject<string>("");
+  private getNewMessage$: BehaviorSubject<Message> = new BehaviorSubject<Message>(new Message('','',new Date()));
   private connected$: BehaviorSubject<string | undefined> = new BehaviorSubject<string | undefined>('');
   public checkStatus$: BehaviorSubject<string> = new BehaviorSubject<string>("");
   private loadChat$: BehaviorSubject<string> = new BehaviorSubject<string>("");
   
   private connected: boolean = false;
 
-  private messages: string[] = [];
+  private messages: Message[] = [];
 
   constructor(
     private ngZone: NgZone,
@@ -53,10 +53,10 @@ export class MessageService implements OnDestroy{
           this.checkStatus$.next('');
         });
 
-        this.socket.on("message", (messageData) => {
-            console.log("I RECEIVED THE MESSAGE FROM THE SERVER: "+messageData.content);
-            this.messages.push(messageData);
-            this.getMessage$.next(messageData.content);
+        this.socket.on("message", (newMessage) => {
+            console.log("I RECEIVED THE MESSAGE FROM THE SERVER: "+ newMessage);
+            this.messages.push(newMessage);
+            this.getNewMessage$.next(newMessage);
         });
 
         this.socket.on("disconnect", () => {
@@ -72,72 +72,69 @@ export class MessageService implements OnDestroy{
 }
 
 
-public sendMessage(message: string, receiverId: string) {
-  console.log("receiverId: " + receiverId);
-  
-  if (this.connected) {
-    this.getUserSocketId(receiverId)
-      .pipe(
-        switchMap((receiverSocketId: string) => {
-          // Verifica se il socket ID ricevuto è vuoto
-          if (!receiverSocketId) {
-            throw new Error(`Nessun Socket ID trovato per ${receiverId}`);
-          }
-          
-          
-          return this.saveMessageInDB(message, receiverId).pipe(
-            switchMap(response => {
-              console.log("receiverSocketId: " + receiverSocketId);
-              
-              let data = {
-                senderId: this.authService.getUserId(),
-                receiverId: receiverId,
-                receiverSocketId: receiverSocketId,
-                content: message
-              }
-              
-              this.socket.emit("message", data);
-              return of(response); 
-            })
-          );
-        }),
-        takeUntil(this.destroy$) 
-      )
-      .subscribe({
-        next: response => console.log("Messaggio aggiunto al database con successo!", response),
-        error: error => console.error("Errore nell'aggiunta del messaggio al database:", error)
-      });
-  } else {
-    throw new Error("Non sei connesso.");
-  }
-}
+  public sendMessage(message: Message, receiverId: string) {
+    if (this.connected) {
+      this.getUserSocketId(receiverId)
+        .pipe(
+          switchMap((receiverSocketId: string) => {          
+            return this.saveMessageInDB(message, receiverId).pipe(
+              switchMap(response => {
+                const newMessage = new Message(this.authService.getUserId(), message.content, new Date());
 
-
-
-  public saveMessageInDB(message: string, receiverId: string): Observable<any> {
-    const currentUserId: string | null = this.authService.getUserId() ? this.authService.getUserId() : null;
-    //check if user id is set
-    if(currentUserId){
-      //get messages stored in the database
-      return this.getMessagesInDB(receiverId, currentUserId)
-      .pipe(
-        switchMap((messages: string[] = []) => {
-          //get database messages
-          let currentMessages = Array.isArray(messages) ? messages : [];
-          //push new message
-          currentMessages.push(message);
-          //patch updated messages array
-          return this.http.patch(`${this.authService.getDatabase()}/users/${receiverId}/messages.json`, {[currentUserId]: currentMessages}).pipe(takeUntil(this.destroy$));
-        })
-      );
-    }else{
-      throw new Error("User ID is not available.");
+                // Verifica se il socket ID ricevuto è vuoto
+                if (receiverSocketId) {
+                  this.socket.emit("message", {message: newMessage, socketId: receiverSocketId});
+                }else{
+                  this.getNewMessage$.next(newMessage);
+                }
+                
+                return of(response); 
+              })
+            );
+          }),
+          takeUntil(this.destroy$) 
+        )
+        .subscribe({
+          next: response => console.log("Messaggio aggiunto al database con successo!", response),
+          error: error => console.error("Errore nell'aggiunta del messaggio al database:", error)
+        });
+    } else {
+      throw new Error("Non sei connesso.");
     }
   }
+
+
+
+  public saveMessageInDB(message: Message, receiverId: string): Observable<any> {
+    const currentUserId: string | null = this.authService.getUserId();
+    const sortedUsers = [currentUserId, receiverId].sort();
+    if (!currentUserId) {
+        throw new Error("User not online.");
+    }
+
+    return this.getChatMessagesInDB(currentUserId, receiverId).pipe(
+        switchMap((messages: Message[] = []) => {
+            const updatedMessages: Message[] = Array.isArray(messages) ? messages : [];
+            updatedMessages.push(message);
+            
+            return this.http.patch(`${this.authService.getDatabase()}/chats/${sortedUsers}.json`, { messages: updatedMessages })
+                .pipe(
+                    takeUntil(this.destroy$),
+                    catchError(error => {
+                        console.error("Error saving message:", error);
+                        return of(null); // Handle the error appropriately
+                    })
+                );
+        })
+    );
+  }
+
   
 
-  public getMessagesInDB(receiverId: string | null, senderId: string | null){
-    return this.http.get<string[]>(`${this.authService.getDatabase()}/users/${receiverId}/messages/${senderId}.json`).pipe(takeUntil(this.destroy$));
+  public getChatMessagesInDB(user1: string | null, user2: string | null){
+    const sortedUsers = [user1, user2].sort();
+    console.log("Sorted users: " + sortedUsers);
+    return this.http.get<Message[]>(`${this.authService.getDatabase()}/chats/${sortedUsers}/messages.json`,).pipe(takeUntil(this.destroy$));
   }
 
   public removeSocket(){
@@ -145,12 +142,8 @@ public sendMessage(message: string, receiverId: string) {
   }
 
   //load chat messages
-  public loadMessages(userId: string){
-    this.loadChat$.next(userId);
-  }
-
-  public getLoadMessagesSubject(){
-    return this.loadChat$.pipe(takeUntil(this.destroy$));
+  public getLoadChatSubject(): BehaviorSubject<string>{
+    return this.loadChat$;
   }
 
   
@@ -162,12 +155,8 @@ public sendMessage(message: string, receiverId: string) {
     return this.checkStatus$;
   }
 
-  public getClientMessageSubject(){
-    return this.createClientMessage$;
-  }
-
   public getNewMessageSubject() {
-    return this.getMessage$;
+    return this.getNewMessage$;
   }
 
   public getMessages() {
@@ -203,17 +192,4 @@ public sendMessage(message: string, receiverId: string) {
       this.socket.disconnect();
     }
   }
-  
-
-  // Disconnect all sockets (if needed)
-  // public disconnectAllSockets() {
-  //   return this.http.post('http://localhost:3000/disconnect-all', {}).subscribe({
-  //     next: (response) => {
-  //       console.log('All clients disconnected:', response);
-  //     },
-  //     error: (err) => {
-  //       console.error('Error disconnecting clients:', err);
-  //     }
-  //   });
-  // }
 }

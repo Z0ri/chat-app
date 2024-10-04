@@ -42,9 +42,10 @@ io.on("connection", (socket) => {
     });
 
     //listen for client's messages
-    socket.on("message", ({ message, receiverSocketId }) => {
+    socket.on("message", (data) => {
         console.log("Message received (server)");
-        io.to(receiverSocketId).emit("message", message);
+        console.log("Receiver socket id: " + data.socketId);
+        io.to(data.socketId).emit("message", data.message);
     });    
 });
 
