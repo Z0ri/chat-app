@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
+import { AfterViewInit, ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -9,6 +9,7 @@ import { MessageService } from '../../services/message.service';
 import { skip, Subject, takeUntil } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { Message } from '../../models/Message';
+import { CookieService } from 'ngx-cookie-service';
 
 @Component({
   selector: 'app-chat-background',
@@ -24,7 +25,7 @@ import { Message } from '../../models/Message';
   templateUrl: './chat-background.component.html',
   styleUrls: ['./chat-background.component.css'] // Corretto da styleUrl a styleUrls
 })
-export class ChatBackgroundComponent implements OnDestroy, OnInit {
+export class ChatBackgroundComponent implements OnDestroy, OnInit, AfterViewInit {
   private destroy$: Subject<void> = new Subject();
   currentUserId: string | null = "";
   ownerId: string = "";
@@ -36,7 +37,8 @@ export class ChatBackgroundComponent implements OnDestroy, OnInit {
   constructor(
     private messageService: MessageService,
     private authService: AuthService,
-    private cd: ChangeDetectorRef
+    private cd: ChangeDetectorRef,
+    private cookieService: CookieService
   ) {}
 
   ngOnDestroy(): void {
@@ -47,34 +49,47 @@ export class ChatBackgroundComponent implements OnDestroy, OnInit {
   ngOnInit(): void {
     this.currentUserId = this.authService.getUserId();
     this.currentDate = new Date();
+
+    //set owner id
+    this.ownerId = this.cookieService.get("ownerId") ? this.cookieService.get("ownerId") : this.ownerId;
+  }
+
+  ngAfterViewInit(): void {
+    //load previous chat messages
     this.messageService.getLoadChatSubject()
       .pipe(takeUntil(this.destroy$), skip(1))
       .subscribe((chatOwnerId: string) => {
-        this.ownerId = chatOwnerId;
+        this.cookieService.set("ownerId", chatOwnerId);
         this.loadMessages(this.currentUserId, chatOwnerId);
       });
+    //display new message 
+    this.messageService.getNewMessageSubject()
+    .pipe(takeUntil(this.destroy$), skip(1))
+    .subscribe({
+      next: (message: Message) => {
+        console.log("ownerId: " + this.ownerId);
+        console.log("ownerId cookie: " + this.cookieService.get("ownerId"));
+        console.log("receiverId" + message.receiverId);
+        //check if the user is on the chat where the message is supposted to go
+        this.messages.push(message);
+        this.cd.detectChanges();
+      },
+      error: error => console.error("Error fetching new message: " + error)
+    });
   }
 
 
   loadMessages(currentUserId: string | null, chatOwnerId: string){
+    this.messages = [];
     //get messages from the chat
     this.messageService.getChatMessagesInDB(currentUserId, chatOwnerId)
     .subscribe({
-      next: (messages: Message[]) => {
+      next: (messages: Message[] = []) => {
         this.messages = messages;
-        messages.forEach(message => {
-          console.log("contenuto messaggio: "+message.content);
-          console.log("autore messaggio: "+message.authorId);
-          console.log("owner id: "+this.ownerId);
-        });
-        //analize if each message was sent or received
-        this.cd.detectChanges();
+        this.cd.detectChanges();//update view
       },
       error: error => console.log("Error loading chat messages: " + error)
-    })
-    //iterate throught every message of the chat
-    //push each message in the messages array
-    //update view
+    });
   }
 
 }

@@ -1,4 +1,4 @@
-<p *ngIf="messages.length>0">You still don't have any messages with {{ownerId}}, send a message!</p>
+<p *ngIf="messages && messages.length<=0">You still don't have any messages with {{ownerId}}, send a message!</p>
 
 <div class="message-container" *ngFor="let message of messages">
   <app-message 

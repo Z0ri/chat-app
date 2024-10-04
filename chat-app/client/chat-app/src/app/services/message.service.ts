@@ -12,7 +12,7 @@ export class MessageService implements OnDestroy{
   destroy$: Subject<void> = new Subject();
 
   private socket!: Socket;
-  private getNewMessage$: BehaviorSubject<Message> = new BehaviorSubject<Message>(new Message('','',new Date()));
+  private getNewMessage$: BehaviorSubject<Message> = new BehaviorSubject<Message>(new Message('','','',new Date()));
   private connected$: BehaviorSubject<string | undefined> = new BehaviorSubject<string | undefined>('');
   public checkStatus$: BehaviorSubject<string> = new BehaviorSubject<string>("");
   private loadChat$: BehaviorSubject<string> = new BehaviorSubject<string>("");
@@ -54,7 +54,7 @@ export class MessageService implements OnDestroy{
         });
 
         this.socket.on("message", (newMessage) => {
-            console.log("I RECEIVED THE MESSAGE FROM THE SERVER: "+ newMessage);
+            console.log("I RECEIVED THE MESSAGE FROM THE SERVER: "+ newMessage.content);
             this.messages.push(newMessage);
             this.getNewMessage$.next(newMessage);
         });
@@ -72,21 +72,21 @@ export class MessageService implements OnDestroy{
 }
 
 
-  public sendMessage(message: Message, receiverId: string) {
+  public sendMessage(message: Message) {
     if (this.connected) {
-      this.getUserSocketId(receiverId)
+      this.getUserSocketId(message.receiverId)
         .pipe(
           switchMap((receiverSocketId: string) => {          
-            return this.saveMessageInDB(message, receiverId).pipe(
+            return this.saveMessageInDB(message, message.receiverId).pipe(
               switchMap(response => {
-                const newMessage = new Message(this.authService.getUserId(), message.content, new Date());
+                const newMessage = new Message(this.authService.getUserId(), message.receiverId, message.content, new Date());
 
-                // Verifica se il socket ID ricevuto è vuoto
+                // Verify if the receiver's socket ID exists
                 if (receiverSocketId) {
                   this.socket.emit("message", {message: newMessage, socketId: receiverSocketId});
-                }else{
-                  this.getNewMessage$.next(newMessage);
                 }
+
+                this.getNewMessage$.next(newMessage);
                 
                 return of(response); 
               })
@@ -133,7 +133,6 @@ export class MessageService implements OnDestroy{
 
   public getChatMessagesInDB(user1: string | null, user2: string | null){
     const sortedUsers = [user1, user2].sort();
-    console.log("Sorted users: " + sortedUsers);
     return this.http.get<Message[]>(`${this.authService.getDatabase()}/chats/${sortedUsers}/messages.json`,).pipe(takeUntil(this.destroy$));
   }
 

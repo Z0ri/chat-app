@@ -1,16 +1,18 @@
 .message-container{
+    max-width: 50%;
     padding: 20px;
     border-radius: 20px;
 }
 .sent-message {
     float: right;
+    margin-right: 5%;
     background-color: lightblue;
 }
 .received-message {
     float: left;
+    margin-left: 5%;
     background-color: lightgrey;
 }
-
 .content {
     color: black;
     margin: 0;

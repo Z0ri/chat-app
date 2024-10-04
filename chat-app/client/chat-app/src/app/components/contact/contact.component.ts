@@ -6,6 +6,7 @@ import { AuthService } from '../../services/auth.service';
 import { skip, Subject, takeUntil } from 'rxjs';
 import { ContactsService } from '../../services/contacts.service';
 import { error } from 'console';
+import { CookieService } from 'ngx-cookie-service';
 
 @Component({
   selector: 'app-contact',
@@ -26,10 +27,13 @@ export class ContactComponent implements OnInit{
     private messageService: MessageService,
     private authService: AuthService,
     private contactService: ContactsService,
-    private cd: ChangeDetectorRef
+    private cd: ChangeDetectorRef,
+    private cookieService: CookieService
   ){}
 
   ngOnInit(): void {
+    this.cookieService.delete("ownerId");
+
     this.contactName = this.ownerData.username;
     if(this.authService.getUserId() == this.ownerData.userId){
       this.contactName += " (Yourself)";

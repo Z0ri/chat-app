@@ -39,9 +39,8 @@ export class MessageInputComponent implements OnInit{
   }
 
   sendMessage(form: NgForm){
-    console.log(form.value.message);
-    const message = new Message(this.senderId, form.value.message, new Date())
-    this.messageService.sendMessage(message, this.receiverId);
+    const message = new Message(this.senderId, this.receiverId, form.value.message, new Date())
+    this.messageService.sendMessage(message);
     form.reset();
   }
 }
