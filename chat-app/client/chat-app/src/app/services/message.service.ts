@@ -4,6 +4,7 @@ import { io, Socket } from 'socket.io-client';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from './auth.service';
 import { Message } from '../models/Message';
+import { CookieService } from 'ngx-cookie-service';
 
 @Injectable({
   providedIn: 'root'
@@ -14,17 +15,18 @@ export class MessageService implements OnDestroy{
   private socket!: Socket;
   private getNewMessage$: BehaviorSubject<Message> = new BehaviorSubject<Message>(new Message('','','',new Date()));
   private connected$: BehaviorSubject<string | undefined> = new BehaviorSubject<string | undefined>('');
-  public checkStatus$: BehaviorSubject<string> = new BehaviorSubject<string>("");
+  private checkStatus$: BehaviorSubject<string | undefined> = new BehaviorSubject<string | undefined>("");
+  private closing$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>("");
   private loadChat$: BehaviorSubject<string> = new BehaviorSubject<string>("");
-  
-  private connected: boolean = false;
 
+  private connected: boolean = false;
   private messages: Message[] = [];
 
   constructor(
     private ngZone: NgZone,
     private http: HttpClient,
-    private authService: AuthService
+    private authService: AuthService,
+    private cookieService: CookieService
   ) { }
 
   ngOnDestroy(): void {
@@ -38,6 +40,13 @@ export class MessageService implements OnDestroy{
 
         this.socket.on("connect", () => {
             console.log("Connected to the server! " + this.socket.id);
+            this.checkStatus$.next(this.socket.id);
+            //set username as online
+            let userId = this.authService.getUserId();
+            if(userId){
+              this.authService.getOnlineUsersArray().push(userId); //add user to online users
+              this.cookieService.set("onlineUsers", JSON.stringify(this.authService.getOnlineUsers())); //update the cookie
+            }
             this.connected = true;
             this.setNewSocketId().pipe(takeUntil(this.destroy$))
             .subscribe({
@@ -48,15 +57,19 @@ export class MessageService implements OnDestroy{
               error: error => console.error("Error setting new socket id: " + error)
             });
         });
-
-        this.socket.on("checkStatus",()=>{
-          this.checkStatus$.next('');
-        });
-
+        
         this.socket.on("message", (newMessage) => {
             console.log("I RECEIVED THE MESSAGE FROM THE SERVER: "+ newMessage.content);
             this.messages.push(newMessage);
             this.getNewMessage$.next(newMessage);
+        });
+
+        this.socket.on("checkStatus", (connectedSocket) =>{
+          this.checkStatus$.next(connectedSocket);
+        })
+
+        this.socket.on("notifyClosing", (userId) => {
+          this.closing$.next(userId);
         });
 
         this.socket.on("disconnect", () => {
@@ -66,7 +79,8 @@ export class MessageService implements OnDestroy{
 
         // Listen for beforeunload to notify closing to the server
         window.addEventListener('beforeunload', () => {
-            this.socket.emit("notifyClosing", this.authService.getUserId());
+          this.socket.emit("notifyClosing", this.authService.getUserId());
+          this.cookieService.delete("onlineUsers");
         });
     });
 }
@@ -144,7 +158,6 @@ export class MessageService implements OnDestroy{
   public getLoadChatSubject(): BehaviorSubject<string>{
     return this.loadChat$;
   }
-
   
   public getConnectedSubject(): BehaviorSubject<string | undefined>{
     return this.connected$;
@@ -156,6 +169,10 @@ export class MessageService implements OnDestroy{
 
   public getNewMessageSubject() {
     return this.getNewMessage$;
+  }
+
+  public getClosingSubject(){
+    return this.closing$;
   }
 
   public getMessages() {

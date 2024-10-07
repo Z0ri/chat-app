@@ -62,6 +62,11 @@ export class LoginComponent implements OnInit, OnDestroy{
           console.log(success);
           /*make snackbar appear*/
           this.messageService.connect(); //connect to node server
+          let userId = this.authService.getUserId();
+          if(userId){
+            this.authService.updateOnlineUsersCookie(userId);
+          }
+          this.messageService.getCheckStatusSubject().next(this.loginForm.value.usernameEmail);
           this.router.navigate(['/chat']); //navigate to chat
         } else {
           //show an error

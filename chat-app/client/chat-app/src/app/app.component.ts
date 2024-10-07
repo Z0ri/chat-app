@@ -35,6 +35,9 @@ export class AppComponent implements OnInit, OnDestroy{
     if(this.authService.checkLogged()){
       this.messageService.connect();
     }
+
+    this.authService.updateOnlineUsersFromDB();
+    
     // if(typeof sessionStorage !== 'undefined'){
     //   sessionStorage.removeItem("userId");
     // }

@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, Input, OnInit } from '@angular/core';
+import { AfterViewInit, ChangeDetectorRef, Component, Input, OnInit } from '@angular/core';
 import {MatCardModule} from '@angular/material/card';
 import { MessageService } from '../../services/message.service';
 import { CommonModule } from '@angular/common';
@@ -15,7 +15,7 @@ import { CookieService } from 'ngx-cookie-service';
   templateUrl: './contact.component.html',
   styleUrl: './contact.component.css'
 })
-export class ContactComponent implements OnInit{
+export class ContactComponent implements OnInit, AfterViewInit{
   destroy$: Subject<void> = new Subject<void>();
   @Input() ownerData!: any;
   contactName: string = 'Contact name';
@@ -38,13 +38,7 @@ export class ContactComponent implements OnInit{
     if(this.authService.getUserId() == this.ownerData.userId){
       this.contactName += " (Yourself)";
     }
-
-
-    this.messageService.checkStatus$
-    .pipe(takeUntil(this.destroy$))
-    .subscribe(()=>{
-      this.checkStatus();
-    });
+    
     this.contactService.getDarkenContactsSubject().pipe(takeUntil(this.destroy$))
     .subscribe({
       next: (selectedUserId) => {
@@ -53,6 +47,27 @@ export class ContactComponent implements OnInit{
         this.cd.detectChanges();
       },
       error: error => console.log("Error darkening the contact: " + error)
+    });
+  }
+
+  ngAfterViewInit() {
+    this.messageService.getCheckStatusSubject()
+    .pipe(takeUntil(this.destroy$))
+    .subscribe(()=>{
+      this.authService.updateOnlineUsersFromDB()
+        .then(() => {
+          this.checkStatus();
+        });
+    });
+
+    this.messageService.getClosingSubject()
+    .pipe(takeUntil(this.destroy$))
+    .subscribe((userId)=>{
+      if(userId == this.ownerData.userId){
+        this.status = false;
+        this.statusColor = "red";
+        this.cd.detectChanges();
+      }
     });
   }
 
@@ -65,10 +80,19 @@ export class ContactComponent implements OnInit{
 
   //check if owner is online
   private checkStatus() {
-    this.authService.checkUserOnline(this.ownerData, (isOnline)=>{
-      this.status = isOnline;
-      this.statusColor = isOnline ? "lightgreen" : "red"; 
-      this.cd.detectChanges(); 
-    });
+    const onlineUsers = this.cookieService.get("onlineUsers");
+    if(onlineUsers.includes(this.ownerData.userId)){
+      this.status = true;
+      this.statusColor = "lightgreen"; 
+    }
+    if(!onlineUsers.includes(this.ownerData.userId)){
+      this.status = false;
+      this.statusColor = "red"; 
+    }
+    this.cd.detectChanges(); 
+  }
+
+  private goOffline(){
+
   }
 }

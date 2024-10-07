@@ -67,12 +67,14 @@ export class ChatBackgroundComponent implements OnDestroy, OnInit, AfterViewInit
     .pipe(takeUntil(this.destroy$), skip(1))
     .subscribe({
       next: (message: Message) => {
-        console.log("ownerId: " + this.ownerId);
-        console.log("ownerId cookie: " + this.cookieService.get("ownerId"));
-        console.log("receiverId" + message.receiverId);
-        //check if the user is on the chat where the message is supposted to go
-        this.messages.push(message);
-        this.cd.detectChanges();
+        if(message){
+          console.log("ownerId: " + this.ownerId);
+          console.log("ownerId cookie: " + this.cookieService.get("ownerId"));
+          console.log("receiverId" + message.receiverId);
+          //check if the user is on the chat where the message is supposted to go
+          this.messages.push(message);
+          this.cd.detectChanges();
+        }
       },
       error: error => console.error("Error fetching new message: " + error)
     });

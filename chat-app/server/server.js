@@ -24,14 +24,14 @@ admin.initializeApp({
 
 // Handle socket connections
 io.on("connection", (socket) => {
-    io.emit("checkStatus"); //notify all clients's contacts to check if they're owners are online
+    io.emit("checkStatus", socket.id); //notify all clients's contacts to check if they're owners are online
     console.log("EMESSO CHECK STATUS!");
     socket.join(socket.id);
     console.log(`Client with ID: ${socket.id} connected.`);
 
     socket.on("notifyClosing", (id) => {
         userId = id;
-        io.emit("checkStatus"); //notify all clients's contacts to check if they're owners are online
+        io.emit("notifyClosing", userId); //notify all clients's contacts to check if they're owners are online
     });
 
     socket.on("disconnect", () => {

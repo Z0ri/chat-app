@@ -3,14 +3,17 @@ import { Injectable } from '@angular/core';
 import { User } from '../models/User';
 import { catchError, map, Observable, of, Subject, switchMap, takeUntil, tap } from 'rxjs';
 import { MessageService } from './message.service';
+import { CookieService } from 'ngx-cookie-service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  destroy$: Subject<void> = new Subject<void>();
+  private onlineUsers: string[] = [];
+  private destroy$: Subject<void> = new Subject<void>();
   constructor(
-    private http: HttpClient
+    private http: HttpClient,
+    private cookieService: CookieService
     // private messageService: MessageService
   ) { }
 
@@ -24,7 +27,7 @@ export class AuthService {
               (loginUser.usernameEmail === user.username || loginUser.usernameEmail === user.email) &&
               loginUser.password === user.password
             ) {
-              this.setUserId(key);
+              this.setUserId(key); //set user id in session storage
               return true; 
             }
           }
@@ -36,6 +39,7 @@ export class AuthService {
         })
       );
   }
+
   public signUp(user: User): Observable<any> {
     return this.http.post<{[key: string]: User}>(`${this.getDatabase()}/users.json`, user)
       .pipe(
@@ -83,10 +87,75 @@ export class AuthService {
     this.getUser(user.userId)
     .subscribe((userData: any) => {
       if(userData){
+        console.log("user: " + userData.username);
+        console.log("socket id: " + userData.socketId);
         const online = userData.socketId !== '';
+        console.log(online);
         callback(online);
       }
     });
+  }
+
+  public updateOnlineUsersFromDB(): Promise<void> {
+    return new Promise((resolve) => {
+      this.getUsers()
+        .subscribe((users: any[]) => {
+          for (let user of Object.values(users)) {
+            if (user.socketId && !this.onlineUsers.includes(user.userId)) {
+              this.onlineUsers.push(user.userId);
+              this.cookieService.set("onlineUsers", JSON.stringify(this.onlineUsers));
+            }
+          }
+          
+          // Resolve the promise after processing users
+          resolve();
+        });
+    });
+  }
+  
+  
+  public updateOnlineUsersCookie(userId: string) {
+    // Get the "onlineUsers" cookie
+    const onlineUsersCookie = this.cookieService.get("onlineUsers");
+    
+    // Try to parse the cookie, or create an empty array if it's invalid or empty
+    let onlineUsersArray: string[] = [];
+    
+    if (onlineUsersCookie) {
+      try {
+        onlineUsersArray = JSON.parse(onlineUsersCookie);
+        
+        // Ensure the parsed data is an array
+        if (!Array.isArray(onlineUsersArray)) {
+          onlineUsersArray = [];
+        }
+      } catch (e) {
+        console.error("Error parsing onlineUsers cookie:", e);
+      }
+    }
+  
+    // Add the new userId if it's not already in the array
+    if (!onlineUsersArray.includes(userId)) {
+      onlineUsersArray.push(userId);
+    }
+  
+    // Save the updated array back into the cookie as a JSON string
+    this.cookieService.set("onlineUsers", JSON.stringify(onlineUsersArray));
+  }
+  
+
+
+  public getUsersSockets(): string[]{
+    const usersSockets: string[] = [];
+    this.getUsers()
+    .subscribe((users: any)=>{
+      for(let user of Object.keys(users)){
+        usersSockets.push(users[user].socketId);
+      }
+    });
+    console.log("from authservice func: ");
+    console.log(usersSockets);
+    return usersSockets;
   }
 
   public getUserId(){
@@ -102,10 +171,17 @@ export class AuthService {
     }
   }
 
+  public getOnlineUsersArray(){
+    return this.onlineUsers;
+  }
+
+  public getOnlineUsers(){
+    return this.cookieService.get("onlineUsers");
+  }
+
   public setIDinDB(userId: string): Observable<any> {
     return this.http.patch(`${this.getDatabase()}/users/${this.getUserId()}.json`, { userId: userId });
   }
-
   
   public getUsers(): Observable<any>{
     return this.http.get(`${this.getDatabase()}/users.json`).pipe(takeUntil(this.destroy$));
@@ -115,6 +191,13 @@ export class AuthService {
     return this.http.get(`${this.getDatabase()}/users/${userId}.json`).pipe(takeUntil(this.destroy$));
   }
   
+  public getUserame(userId: string | null){
+    if(userId){
+      return this.http.get<string>(`${this.getDatabase()}/users/${userId}/username.json`);
+    }
+    return of("Error getting the user's username: userId not found.");
+  }
+
   public showError(invalid: { error: boolean }) {
     invalid.error = true;
     setTimeout(() => {
