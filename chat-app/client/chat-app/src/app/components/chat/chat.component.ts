@@ -5,6 +5,7 @@ import { ChatBackgroundComponent } from '../chat-background/chat-background.comp
 import { MessageInputComponent } from '../message-input/message-input.component';
 import { ContactComponent } from "../contact/contact.component";
 import { ContactsSectionComponent } from "../contacts-section/contacts-section.component";
+import { ContactBannerComponent } from "../contact-banner/contact-banner.component";
 
 @Component({
   selector: 'app-chat',
@@ -15,7 +16,8 @@ import { ContactsSectionComponent } from "../contacts-section/contacts-section.c
     MessageInputComponent,
     ChatBackgroundComponent,
     ContactComponent,
-    ContactsSectionComponent
+    ContactsSectionComponent,
+    ContactBannerComponent
 ],
   templateUrl: './chat.component.html',
   styleUrl: './chat.component.css'

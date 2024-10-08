@@ -113,7 +113,6 @@ export class AuthService {
     });
   }
   
-  
   public updateOnlineUsersCookie(userId: string) {
     // Get the "onlineUsers" cookie
     const onlineUsersCookie = this.cookieService.get("onlineUsers");

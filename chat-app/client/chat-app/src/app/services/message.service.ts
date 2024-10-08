@@ -17,7 +17,8 @@ export class MessageService implements OnDestroy{
   private connected$: BehaviorSubject<string | undefined> = new BehaviorSubject<string | undefined>('');
   private checkStatus$: BehaviorSubject<string | undefined> = new BehaviorSubject<string | undefined>("");
   private closing$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>("");
-  private loadChat$: BehaviorSubject<string> = new BehaviorSubject<string>("");
+  private loadChat$: BehaviorSubject<any> = new BehaviorSubject<any>({});
+  private writing$: BehaviorSubject<string> = new BehaviorSubject("");
 
   private connected: boolean = false;
   private messages: Message[] = [];
@@ -62,6 +63,10 @@ export class MessageService implements OnDestroy{
             console.log("I RECEIVED THE MESSAGE FROM THE SERVER: "+ newMessage.content);
             this.messages.push(newMessage);
             this.getNewMessage$.next(newMessage);
+        });
+
+        this.socket.on("writing", (senderId)=>{
+          this.writing$.next(senderId);
         });
 
         this.socket.on("checkStatus", (connectedSocket) =>{
@@ -143,8 +148,6 @@ export class MessageService implements OnDestroy{
     );
   }
 
-  
-
   public getChatMessagesInDB(user1: string | null, user2: string | null){
     const sortedUsers = [user1, user2].sort();
     return this.http.get<Message[]>(`${this.authService.getDatabase()}/chats/${sortedUsers}/messages.json`,).pipe(takeUntil(this.destroy$));
@@ -154,7 +157,10 @@ export class MessageService implements OnDestroy{
     return this.http.put(`${this.authService.getDatabase()}/users/${this.authService.getUserId()}.json`, { socketId: 'none' })
   }
 
-  //load chat messages
+  public getWritingSubject(){
+    return this.writing$;
+  }
+
   public getLoadChatSubject(): BehaviorSubject<string>{
     return this.loadChat$;
   }

@@ -2,4 +2,5 @@
     <div mat-card-avatar class="profile-pic"></div>
     <div class="status" [ngStyle]="{'background-color': statusColor}"></div>
     <p class="contact-name">{{contactName}}</p>
+    <p class="writing" *ngIf="writing">Writing...</p>
 </div>

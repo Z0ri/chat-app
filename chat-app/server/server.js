@@ -45,6 +45,11 @@ io.on("connection", (socket) => {
         console.log("Receiver socket id: " + data.socketId);
         io.to(data.socketId).emit("message", data.message);
     });    
+
+    //listen for writing
+    socket.on("writing", (writingData) => {
+        io.to(writingData.receiverSocketId).emit("writing", writingData.senderId);
+    });
 });
 
 // Start the server

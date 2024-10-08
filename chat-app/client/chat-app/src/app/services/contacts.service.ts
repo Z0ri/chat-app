@@ -10,7 +10,6 @@ import { HttpClient } from '@angular/common/http';
 })
 export class ContactsService {
   private destroy$: Subject<void> = new Subject<void>();
-  private darkenContacts$: Subject<void> = new Subject();
 
   constructor(
     private authService: AuthService,
@@ -38,9 +37,5 @@ export class ContactsService {
       }
       return contactRefs;
     });
-  }
-
-  getDarkenContactsSubject(){
-    return this.darkenContacts$;
   }
 }

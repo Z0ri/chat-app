@@ -3,9 +3,8 @@ import {MatCardModule} from '@angular/material/card';
 import { MessageService } from '../../services/message.service';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
-import { skip, Subject, takeUntil } from 'rxjs';
+import { skip, Subject, takeUntil, timeoutWith } from 'rxjs';
 import { ContactsService } from '../../services/contacts.service';
-import { error } from 'console';
 import { CookieService } from 'ngx-cookie-service';
 
 @Component({
@@ -21,6 +20,8 @@ export class ContactComponent implements OnInit, AfterViewInit{
   contactName: string = 'Contact name';
   statusColor: string = 'red';
   status: boolean = false;
+  writing: boolean = false;
+  typingTimeout: any;
   opacity: number = 1;
 
   constructor(
@@ -39,15 +40,44 @@ export class ContactComponent implements OnInit, AfterViewInit{
       this.contactName += " (Yourself)";
     }
     
-    this.contactService.getDarkenContactsSubject().pipe(takeUntil(this.destroy$))
+    this.messageService.getLoadChatSubject().pipe(takeUntil(this.destroy$), skip(1))
     .subscribe({
-      next: (selectedUserId) => {
+      next: (selectedUser: any) => {
         //if this contact's owner isn't the user id that corrisponds to the owner id of the clicked contact
-        selectedUserId != this.ownerData.userId ? this.opacity=0.5 : this.opacity=1;
+        selectedUser.userId != this.ownerData.userId ? this.opacity=0.5 : this.opacity=1;
         this.cd.detectChanges();
       },
       error: error => console.log("Error darkening the contact: " + error)
     });
+
+    this.messageService.getWritingSubject()
+    .pipe(takeUntil(this.destroy$), skip(1))
+    .subscribe((senderId: string)=>{
+      if (senderId === this.ownerData.userId) {
+        if (this.typingTimeout) {
+          clearTimeout(this.typingTimeout);
+        }
+
+        if (this.writing === false) {
+          this.writing = true;
+          this.cd.detectChanges();
+        }
+
+        this.typingTimeout = setTimeout(() => {
+          this.writing = false;
+          this.cd.detectChanges();
+        }, 3000);
+
+        //Hide the typing indicator when a new message is received.
+        this.messageService.getNewMessageSubject()
+        .pipe(takeUntil(this.destroy$), skip(1))
+        .subscribe(()=>{
+          this.writing = false;
+          this.cd.detectChanges();
+        });
+      }
+    });
+
   }
 
   ngAfterViewInit() {
@@ -73,9 +103,7 @@ export class ContactComponent implements OnInit, AfterViewInit{
 
   loadChat(){
     //load owner's chat
-    this.messageService.getLoadChatSubject().next(this.ownerData.userId);
-    //send a subject to make other contacts less visible
-    this.contactService.getDarkenContactsSubject().next(this.ownerData.userId);
+    this.messageService.getLoadChatSubject().next(this.ownerData);
   }
 
   //check if owner is online
@@ -90,9 +118,5 @@ export class ContactComponent implements OnInit, AfterViewInit{
       this.statusColor = "red"; 
     }
     this.cd.detectChanges(); 
-  }
-
-  private goOffline(){
-
   }
 }

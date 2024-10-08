@@ -58,9 +58,9 @@ export class ChatBackgroundComponent implements OnDestroy, OnInit, AfterViewInit
     //load previous chat messages
     this.messageService.getLoadChatSubject()
       .pipe(takeUntil(this.destroy$), skip(1))
-      .subscribe((chatOwnerId: string) => {
-        this.cookieService.set("ownerId", chatOwnerId);
-        this.loadMessages(this.currentUserId, chatOwnerId);
+      .subscribe((owner: any) => {
+        this.cookieService.set("ownerId", owner.userId);
+        this.loadMessages(this.currentUserId, owner.userId);
       });
     //display new message 
     this.messageService.getNewMessageSubject()
@@ -68,9 +68,6 @@ export class ChatBackgroundComponent implements OnDestroy, OnInit, AfterViewInit
     .subscribe({
       next: (message: Message) => {
         if(message){
-          console.log("ownerId: " + this.ownerId);
-          console.log("ownerId cookie: " + this.cookieService.get("ownerId"));
-          console.log("receiverId" + message.receiverId);
           //check if the user is on the chat where the message is supposted to go
           this.messages.push(message);
           this.cd.detectChanges();
