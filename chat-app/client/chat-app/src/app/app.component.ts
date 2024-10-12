@@ -8,6 +8,7 @@ import { MessageInputComponent } from "./components/message-input/message-input.
 import { ChatBackgroundComponent } from "./components/chat-background/chat-background.component";
 import { Router } from '@angular/router';
 import { AuthService } from './services/auth.service';
+import { ContactsService } from './services/contacts.service';
 
 @Component({
   selector: 'app-root',
@@ -22,7 +23,8 @@ export class AppComponent implements OnInit, OnDestroy{
 
   constructor(
     private messageService: MessageService,
-    private authService: AuthService
+    private authService: AuthService,
+    private contactsService: ContactsService
   ){}
 
   ngOnDestroy(): void {
@@ -35,7 +37,7 @@ export class AppComponent implements OnInit, OnDestroy{
     if(this.authService.checkLogged()){
       this.messageService.connect();
     }
-
+    //set online users from DB
     this.authService.updateOnlineUsersFromDB();
     
     // if(typeof sessionStorage !== 'undefined'){

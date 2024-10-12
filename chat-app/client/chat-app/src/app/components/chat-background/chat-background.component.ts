@@ -51,7 +51,7 @@ export class ChatBackgroundComponent implements OnDestroy, OnInit, AfterViewInit
     this.currentDate = new Date();
 
     //set owner id
-    this.ownerId = this.cookieService.get("ownerId") ? this.cookieService.get("ownerId") : this.ownerId;
+    this.ownerId = this.cookieService.get("chatOwnerId") ? this.cookieService.get("chatOwnerId") : this.ownerId;
   }
 
   ngAfterViewInit(): void {
@@ -59,7 +59,7 @@ export class ChatBackgroundComponent implements OnDestroy, OnInit, AfterViewInit
     this.messageService.getLoadChatSubject()
       .pipe(takeUntil(this.destroy$), skip(1))
       .subscribe((owner: any) => {
-        this.cookieService.set("ownerId", owner.userId);
+        this.cookieService.set("chatOwnerId", owner.userId);
         this.loadMessages(this.currentUserId, owner.userId);
       });
     //display new message 
@@ -77,10 +77,9 @@ export class ChatBackgroundComponent implements OnDestroy, OnInit, AfterViewInit
     });
   }
 
-
+  //get messages from the chat saved in the database
   loadMessages(currentUserId: string | null, chatOwnerId: string){
     this.messages = [];
-    //get messages from the chat
     this.messageService.getChatMessagesInDB(currentUserId, chatOwnerId)
     .subscribe({
       next: (messages: Message[] = []) => {

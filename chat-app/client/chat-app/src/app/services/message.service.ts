@@ -14,6 +14,7 @@ export class MessageService implements OnDestroy{
 
   private socket!: Socket;
   private getNewMessage$: BehaviorSubject<Message> = new BehaviorSubject<Message>(new Message('','','',new Date()));
+  private getReceivedMessage$: BehaviorSubject<Message> = new BehaviorSubject(new Message('','','',new Date()));
   private connected$: BehaviorSubject<string | undefined> = new BehaviorSubject<string | undefined>('');
   private checkStatus$: BehaviorSubject<string | undefined> = new BehaviorSubject<string | undefined>("");
   private closing$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>("");
@@ -63,6 +64,7 @@ export class MessageService implements OnDestroy{
             console.log("I RECEIVED THE MESSAGE FROM THE SERVER: "+ newMessage.content);
             this.messages.push(newMessage);
             this.getNewMessage$.next(newMessage);
+            this.getReceivedMessage$.next(newMessage);
         });
 
         this.socket.on("writing", (senderId)=>{
@@ -104,7 +106,7 @@ export class MessageService implements OnDestroy{
                 if (receiverSocketId) {
                   this.socket.emit("message", {message: newMessage, socketId: receiverSocketId});
                 }
-
+                //notify to update UI
                 this.getNewMessage$.next(newMessage);
                 
                 return of(response); 
@@ -155,6 +157,10 @@ export class MessageService implements OnDestroy{
 
   public removeSocket(){
     return this.http.put(`${this.authService.getDatabase()}/users/${this.authService.getUserId()}.json`, { socketId: 'none' })
+  }
+
+  public getReceivedMessageSubject(){
+    return this.getReceivedMessage$;
   }
 
   public getWritingSubject(){

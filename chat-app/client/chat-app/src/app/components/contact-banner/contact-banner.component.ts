@@ -1,10 +1,7 @@
 import { AfterViewInit, ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { MessageService } from '../../services/message.service';
-import { debounce, debounceTime, skip, Subject, switchMap, takeUntil } from 'rxjs';
+import { skip, Subject, takeUntil } from 'rxjs';
 import { CommonModule } from '@angular/common';
-import { CookieService } from 'ngx-cookie-service';
-import { AuthService } from '../../services/auth.service';
-import { ContactsService } from '../../services/contacts.service';
 
 @Component({
   selector: 'app-contact-banner',

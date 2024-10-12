@@ -1,4 +1,4 @@
-import { Component, NgZone, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule, NgForm } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -56,7 +56,6 @@ export class MessageInputComponent implements OnInit, OnDestroy{
       this.messageService.getUserSocketId(this.receiverId)
       .pipe(takeUntil(this.destroy$))
       .subscribe((receiverSocketId: string)=>{
-        console.log("retrieved socket id: " + receiverSocketId);
         const writingData = {
           senderId: this.senderId,
           receiverSocketId: receiverSocketId
