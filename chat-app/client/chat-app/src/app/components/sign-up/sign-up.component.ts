@@ -45,6 +45,7 @@ export class SignUpComponent implements OnInit{
     const user = new User(
       '',
       '',
+      '',
       this.signupForm.get('username')?.value,
       this.signupForm.get('email')?.value,
       this.signupForm.get('password')?.value

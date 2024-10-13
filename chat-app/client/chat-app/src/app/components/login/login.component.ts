@@ -59,13 +59,21 @@ export class LoginComponent implements OnInit, OnDestroy{
       .pipe(takeUntil(this.destroy$))
       .subscribe((success) => {
         if (success) {
-          console.log(success);
           /*make snackbar appear*/
           this.messageService.connect(); //connect to node server
-          let userId = this.authService.getUserId();
-          if(userId){
-            this.authService.updateOnlineUsersCookie(userId);
-          }
+          let userId = this.authService.getUserId() || "";
+
+          this.authService.updateOnlineUsersCookie(userId);
+          
+          this.authService.getUserNotifications(userId)
+          .subscribe({
+            next: (notifications: string[])=>{
+              if(notifications){
+                this.authService.getNotificationSubject().next(notifications);
+              }
+            },
+            error: error => console.log(`Error getting user notifications`, error)
+          });
           this.messageService.getCheckStatusSubject().next(this.loginForm.value.usernameEmail);
           this.router.navigate(['/chat']); //navigate to chat
         } else {

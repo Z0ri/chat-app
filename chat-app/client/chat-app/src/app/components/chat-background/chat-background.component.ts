@@ -49,7 +49,7 @@ export class ChatBackgroundComponent implements OnDestroy, OnInit, AfterViewInit
   ngOnInit(): void {
     this.currentUserId = this.authService.getUserId();
     this.currentDate = new Date();
-
+    this.messages = [];
     //set owner id
     this.ownerId = this.cookieService.get("chatOwnerId") ? this.cookieService.get("chatOwnerId") : this.ownerId;
   }
@@ -67,10 +67,17 @@ export class ChatBackgroundComponent implements OnDestroy, OnInit, AfterViewInit
     .pipe(takeUntil(this.destroy$), skip(1))
     .subscribe({
       next: (message: Message) => {
+        this.messages = this.messages || [];
         if(message){
-          //check if the user is on the chat where the message is supposted to go
-          this.messages.push(message);
-          this.cd.detectChanges();
+          if(this.messages){
+            //check if the user is on the chat where the message is supposted to go
+            this.messages.push(message);
+            this.cd.detectChanges();
+          }else{
+            console.error("The messages array don't exists");
+          }
+        }else{
+          console.error("The message don't exists");
         }
       },
       error: error => console.error("Error fetching new message: " + error)

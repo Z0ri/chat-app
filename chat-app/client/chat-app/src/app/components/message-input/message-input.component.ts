@@ -63,8 +63,6 @@ export class MessageInputComponent implements OnInit, OnDestroy{
         if(receiverSocketId){
           //notify writing event
           this.messageService.getSocket().emit("writing", writingData);
-        }else{
-          console.error("Receiver's socket id not found.");
         }
       });
     }

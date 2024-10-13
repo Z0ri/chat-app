@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { User } from '../models/User';
-import { catchError, map, Observable, of, Subject, switchMap, takeUntil, tap } from 'rxjs';
+import { BehaviorSubject, catchError, map, Observable, of, Subject, switchMap, takeUntil, tap } from 'rxjs';
 import { MessageService } from './message.service';
 import { CookieService } from 'ngx-cookie-service';
 
@@ -11,6 +11,8 @@ import { CookieService } from 'ngx-cookie-service';
 export class AuthService {
   private onlineUsers: string[] = [];
   private destroy$: Subject<void> = new Subject<void>();
+  private getNotifications$: BehaviorSubject<string[]> = new BehaviorSubject<string[]>([]);
+
   constructor(
     private http: HttpClient,
     private cookieService: CookieService
@@ -170,6 +172,23 @@ export class AuthService {
     }
   }
 
+  public getUserNotifications(userId: string): Observable<string[]>{
+    return this.http.get<string[]>(`${this.getDatabase()}/users/${userId}/notifiedBy.json`);
+  }
+
+  public removeUserNotification(removedId: string): Observable<any>{
+    const currentUserId = this.getUserId() || "";
+    const removedUserId = removedId || "";
+    return this.getUserNotifications(currentUserId)
+    .pipe(
+      switchMap((notifications: string[]) => {
+        let updatedNotifications = [...notifications];
+        updatedNotifications = updatedNotifications.filter(id => id != removedUserId);
+        return this.http.patch(`${this.getDatabase()}/users/${this.getUserId()}.json`, {notifiedBy : updatedNotifications})
+      })
+    )
+  }
+
   public getOnlineUsersArray(){
     return this.onlineUsers;
   }
@@ -202,6 +221,10 @@ export class AuthService {
     setTimeout(() => {
       invalid.error = false;
     }, 2000);
+  }
+
+  public getNotificationSubject(){
+    return this.getNotifications$;
   }
 
 

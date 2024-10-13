@@ -1,10 +1,11 @@
 import { Injectable, NgZone, OnDestroy } from '@angular/core';
-import { BehaviorSubject, catchError, Observable, of, Subject, switchMap, takeUntil } from 'rxjs';
+import { BehaviorSubject, catchError, map, Observable, of, Subject, switchMap, takeUntil } from 'rxjs';
 import { io, Socket } from 'socket.io-client';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from './auth.service';
 import { Message } from '../models/Message';
 import { CookieService } from 'ngx-cookie-service';
+import { ContactsService } from './contacts.service';
 
 @Injectable({
   providedIn: 'root'
@@ -28,7 +29,8 @@ export class MessageService implements OnDestroy{
     private ngZone: NgZone,
     private http: HttpClient,
     private authService: AuthService,
-    private cookieService: CookieService
+    private cookieService: CookieService,
+    private contactsService: ContactsService
   ) { }
 
   ngOnDestroy(): void {
@@ -90,39 +92,70 @@ export class MessageService implements OnDestroy{
           this.cookieService.delete("onlineUsers");
         });
     });
-}
+  }
 
 
   public sendMessage(message: Message) {
-    if (this.connected) {
-      this.getUserSocketId(message.receiverId)
-        .pipe(
-          switchMap((receiverSocketId: string) => {          
-            return this.saveMessageInDB(message, message.receiverId).pipe(
-              switchMap(response => {
-                const newMessage = new Message(this.authService.getUserId(), message.receiverId, message.content, new Date());
-
-                // Verify if the receiver's socket ID exists
-                if (receiverSocketId) {
-                  this.socket.emit("message", {message: newMessage, socketId: receiverSocketId});
-                }
-                //notify to update UI
-                this.getNewMessage$.next(newMessage);
-                
-                return of(response); 
-              })
-            );
-          }),
-          takeUntil(this.destroy$) 
-        )
-        .subscribe({
-          next: response => console.log("Messaggio aggiunto al database con successo!", response),
-          error: error => console.error("Errore nell'aggiunta del messaggio al database:", error)
-        });
-    } else {
-      throw new Error("Non sei connesso.");
+    if (!this.connected) {
+      throw new Error("You are not connected.");
     }
+  
+    this.getUserSocketId(message.receiverId)
+      .pipe(
+        switchMap((receiverSocketId: string) => {
+          const newMessage = new Message(
+            this.authService.getUserId(),
+            message.receiverId,
+            message.content,
+            new Date()
+          );
+  
+          // Save the message in the DB first
+          return this.saveMessageInDB(newMessage, message.receiverId).pipe(
+            switchMap(() => {
+              // If the user is online, send the message via socket
+              if (receiverSocketId) {
+                this.socket.emit("message", { message: newMessage, socketId: receiverSocketId });
+                return of(null); // Nothing more to do, message was sent
+              } else {
+                // If the user is offline, save the notification in the database
+                return this.authService.getUserNotifications(message.receiverId).pipe(
+                  switchMap((notifications: string[]) => {
+                    let senderId = message.authorId || "";
+                    let updatedNotifications: string[] = [];
+                    
+                    // Ensure notifications is an array, or default it to an empty array
+                    if (Array.isArray(notifications)) {
+                      updatedNotifications = [...notifications];
+                    }
+                    
+                    // Only add the senderId if it's not already in the notifications array
+                    if (!updatedNotifications.includes(senderId)) {
+                      updatedNotifications.push(senderId);
+                    }
+                    
+                    return this.http.patch(`${this.authService.getDatabase()}/users/${message.receiverId}.json`, { notifiedBy: updatedNotifications });
+                  })
+                );
+              }
+            }),
+            map(() => newMessage) // Return the new message for the UI update
+          );
+        }),
+        takeUntil(this.destroy$)
+      )
+      .subscribe({
+        next: (newMessage: Message) => {
+          console.log("Message sent successfully!", newMessage);
+          // Notify the UI about the new message
+          this.getNewMessage$.next(newMessage);
+        },
+        error: (error) => {
+          console.error("Error sending message:", error);
+        }
+      });
   }
+  
 
 
 

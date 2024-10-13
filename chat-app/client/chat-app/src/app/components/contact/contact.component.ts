@@ -3,7 +3,7 @@ import {MatCardModule} from '@angular/material/card';
 import { MessageService } from '../../services/message.service';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
-import { skip, Subject, takeUntil } from 'rxjs';
+import { Observable, skip, Subject, takeUntil } from 'rxjs';
 import { ContactsService } from '../../services/contacts.service';
 import { CookieService } from 'ngx-cookie-service';
 import { Message } from '../../models/Message';
@@ -40,23 +40,22 @@ export class ContactComponent implements OnInit, AfterViewInit{
     this.cookieService.delete("chatOwnerId"); //delete owner cookie
     const owner = new User(this.ownerData.userId, this.ownerData.socketId, this.ownerData.profilePic, this.ownerData.email, this.ownerData.password);
     const notifiedContacts = this.contactService.getNotifiedContacts();
-    console.log("notified contacts: ", JSON.stringify(notifiedContacts));
-    console.log(owner);
-    
+
     const isOwnerNotified = notifiedContacts.some(contact => contact.userId === owner.userId);
-    //check if contacts was notified
+    //check if contact was notified
     if (isOwnerNotified) {
       console.log("NOTIFICATO");
       this.notified = true;
       this.cd.detectChanges();
     }
-    
 
-    this.contactName = this.ownerData.username; 
+    this.contactName = this.ownerData.username; //update UI
+    this.cd.detectChanges();
 
     if(this.authService.getUserId() == this.ownerData.userId){
       this.contactName += " (Yourself)";
     }
+
     //listen for chat loading subject
     this.messageService.getLoadChatSubject().pipe(takeUntil(this.destroy$), skip(1))
     .subscribe({
@@ -97,8 +96,6 @@ export class ContactComponent implements OnInit, AfterViewInit{
           if(message.receiverId != this.cookieService.get("chatOwnerId") && message.authorId != this.cookieService.get("chatOwnerId")){
             //add to notified contacts array
             this.contactService.addNotifiedContact(new User(this.ownerData.userId, this.ownerData.socketId, '', this.ownerData.username, this.ownerData.email, this.ownerData.password));
-            console.log("Contact notification saved in array.");
-            console.log(this.contactService.getNotifiedContacts());
             //Show message notification
             this.notified = true;
             this.cd.detectChanges();
@@ -116,6 +113,19 @@ export class ContactComponent implements OnInit, AfterViewInit{
         .then(() => {
           this.checkStatus();
         });
+    });
+
+    this.authService.getNotificationSubject()
+    .pipe(takeUntil(this.destroy$))
+    .subscribe((notifications: string[])=>{
+      if(notifications){
+        for(let userId of notifications){
+          if(userId == this.ownerData.userId){
+            this.notified = true;
+            this.cd.detectChanges();
+          }
+        }
+      }
     });
 
     this.messageService.getClosingSubject()
@@ -138,7 +148,6 @@ export class ContactComponent implements OnInit, AfterViewInit{
       this.cd.detectChanges();
       this.contactService.removeNotifiedContact(new User(this.ownerData.userId, this.ownerData.socketId, '', this.ownerData.username, this.ownerData.email, this.ownerData.password));
     }
-    
   }
 
   //check if owner is online

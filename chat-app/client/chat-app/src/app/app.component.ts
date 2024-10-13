@@ -9,6 +9,7 @@ import { ChatBackgroundComponent } from "./components/chat-background/chat-backg
 import { Router } from '@angular/router';
 import { AuthService } from './services/auth.service';
 import { ContactsService } from './services/contacts.service';
+import { CookieService } from 'ngx-cookie-service';
 
 @Component({
   selector: 'app-root',
@@ -24,15 +25,17 @@ export class AppComponent implements OnInit, OnDestroy{
   constructor(
     private messageService: MessageService,
     private authService: AuthService,
-    private contactsService: ContactsService
+    private cookieService: CookieService
   ){}
 
   ngOnDestroy(): void {
+    this.cookieService.delete("notifiedContacts"); 
     this.messageService.disconnectSocket();
     this.messageService.closeSocket();
   }
 
   ngOnInit(): void {
+    let userId = this.authService.getUserId() || '';
     //if logged, connect to  node server
     if(this.authService.checkLogged()){
       this.messageService.connect();
@@ -40,6 +43,18 @@ export class AppComponent implements OnInit, OnDestroy{
     //set online users from DB
     this.authService.updateOnlineUsersFromDB();
     
+    this.authService.getUserNotifications(userId)
+    .subscribe({
+      next: (notifications: string[])=>{
+        if(notifications){
+          this.authService.getNotificationSubject().next(notifications);
+        }
+      },
+      error: error => console.log(`Error getting user notifications`, error)
+    });
+
+
+
     // if(typeof sessionStorage !== 'undefined'){
     //   sessionStorage.removeItem("userId");
     // }
