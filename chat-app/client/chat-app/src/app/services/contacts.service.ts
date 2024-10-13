@@ -12,6 +12,7 @@ import { CookieService } from 'ngx-cookie-service';
 })
 export class ContactsService{
   private destroy$: Subject<void> = new Subject<void>();
+  private notifyStatus$: BehaviorSubject<boolean> = new BehaviorSubject(false);
   private notifiedContacts: User[] = [];
   private initializedNotifiedContacts: boolean = false;
 
@@ -75,5 +76,9 @@ export class ContactsService{
 
   public getNotifiedContacts(): User[]{
     return this.notifiedContacts;
+  }
+
+  public getNotifyStautsSubject(){
+    return this.notifyStatus$;
   }
 }

@@ -71,8 +71,10 @@ export class ChatBackgroundComponent implements OnDestroy, OnInit, AfterViewInit
         if(message){
           if(this.messages){
             //check if the user is on the chat where the message is supposted to go
-            this.messages.push(message);
-            this.cd.detectChanges();
+            if(this.ownerId == message.receiverId || this.authService.getUserId() == message.authorId){
+              this.messages.push(message);
+              this.cd.detectChanges();
+            }
           }else{
             console.error("The messages array don't exists");
           }

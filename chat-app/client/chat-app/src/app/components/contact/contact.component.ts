@@ -142,6 +142,8 @@ export class ContactComponent implements OnInit, AfterViewInit{
   loadChat(){
     //load owner's chat
     this.messageService.getLoadChatSubject().next(this.ownerData);
+    //notify banner of the contact's status
+    this.contactService.getNotifyStautsSubject().next(this.status);
     //unnotify if notified
     if(this.notified){
       this.notified = false;

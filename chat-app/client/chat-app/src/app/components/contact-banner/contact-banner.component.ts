@@ -1,7 +1,8 @@
 import { AfterViewInit, ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { MessageService } from '../../services/message.service';
-import { skip, Subject, takeUntil } from 'rxjs';
+import { skip, Subject, take, takeUntil } from 'rxjs';
 import { CommonModule } from '@angular/common';
+import { ContactsService } from '../../services/contacts.service';
 
 @Component({
   selector: 'app-contact-banner',
@@ -15,10 +16,12 @@ export class ContactBannerComponent implements OnInit, OnDestroy, AfterViewInit{
   private owner: any;
   public username: string = "";
   private typingTimeout: any;
+  public statusColor: string = "red";
   public writing = false;
 
   constructor(
     private messageService: MessageService,
+    private contactService: ContactsService,
     private cd: ChangeDetectorRef,
   ){}
 
@@ -61,6 +64,13 @@ export class ContactBannerComponent implements OnInit, OnDestroy, AfterViewInit{
       }
     }
   });
+    //get contact's status
+    this.contactService.getNotifyStautsSubject()
+    .pipe(takeUntil(this.destroy$))
+    .subscribe((status: boolean)=>{
+      this.statusColor = status ? 'lightgreen' : 'red';
+      this.cd.detectChanges();
+    });
   }
 
   ngOnDestroy(): void {
